@@ -166,6 +166,8 @@ content-type: application/json
 
 ## 已知限制与暂缓事项
 
+- **搜索侧只接入了 `/v3/search/web`**：Web IQ 另有 news（可信来源、仅近 14 天）、videos、images 与 classic 多答案端点，但 `WebSearchRequest` 只承载查询与结果上限，调用方无从指定方法，每次搜索都以 `contentFormat: passage` 发往 web 端点。提供方专属模式需等待与提供方无关的 Service Definition 字段。
+- **未为 `/v3/browse` 注册 fetch 提供方**：seam 已在 `web_fetch` 工具背后备有 `registerFetchProvider` 角色且无需新增字段，因此 `web_fetch` 调用会落到组合中的其他提供方，而非 Web IQ 自身的抽取能力及其 `liveCrawl=fallback` 重试路径。
 - **`safeSearch: off` 不转移调用方的内容责任**：Web IQ 仍会拦截违法内容，但可能敏感的合法内容会原样进入模型；本包不做进一步过滤。
 - **`site:` 与 `-site:` 操作符会削弱结果集**：相关性下降，且无论配置何种安全搜索模式，`site:` 都可能返回成人内容。
 - **自定义 `endpoint` 会收到解析出的密钥**：凭据发往何处由部署方而非本包决定；本地仅强制 HTTPS 这一项要求。

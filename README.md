@@ -166,6 +166,8 @@ Append-only. The tool result follows the reusable conversation prefix and does n
 
 ## Known Limitations and Deferred Work
 
+- **Only `/v3/search/web` is wired for search** — Web IQ also serves news (trusted sources, last 14 days), videos, images, and classic multi-answer, but `WebSearchRequest` carries only a query and a result bound, so no caller can name a method and every search posts `contentFormat: passage` to the web endpoint. Provider-specific modes wait on provider-neutral Service Definition fields.
+- **No fetch provider for `/v3/browse`** — the seam already has a `registerFetchProvider` role behind the `web_fetch` tool and needs no new field, so a `web_fetch` call reaches whichever other provider is composed rather than Web IQ's own extraction and its `liveCrawl=fallback` retry path.
 - **`safeSearch: off` does not transfer the caller's content duty** — Web IQ still blocks illegal content, but potentially sensitive legal content reaches the model unchanged; this package adds no further filtering.
 - **`site:` and `-site:` operators degrade the result set** — relevance drops, and `site:` can return adult content regardless of the configured SafeSearch mode.
 - **A custom `endpoint` receives the resolved key** — the deployment, not this package, decides where the credential is sent; only the HTTPS requirement is enforced locally.
