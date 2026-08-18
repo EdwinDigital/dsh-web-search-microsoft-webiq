@@ -1,6 +1,6 @@
 # @edwindigital/dsh-web-search-microsoft-webiq
 
-English
+English | [中文](README.zh.md)
 
 A [Microsoft Web IQ](https://webiq.microsoft.ai/)-backed `WebSearchProvider` for the harness [web capability](https://github.com/deepseek-ai/deepseek-harness) (`ctx.web`). The package calls the Web Search v3 REST endpoint and maps query-relevant passages into the provider-neutral `WebSearchResult` consumed by `@deepseek-ai/dsh-tool-web`.
 
@@ -150,25 +150,27 @@ The provider reports `truncated: false`; `ctx.web` performs the final `maxResult
 
 ## Model Experience
 
-### What the model sees
+### `web_search` tool result, when Web IQ is the selected provider
+
+#### What the model sees
 
 Registration adds no tool. Through `@deepseek-ai/dsh-tool-web`, the conversation model sees the existing `web_search` arguments and a normalized result containing URLs, titles, passages, and optional crawl timestamps. Web IQ receives only the search query and configured REST parameters; it does not receive the conversation transcript.
 
-### Token effect
+#### Token effect
 
 Registration costs zero model tokens. Result tokens scale with the number and `maxLength` of passages returned, then the existing tool rendering limits apply. Web IQ is a retrieval API, so this package does not create a separate model turn.
 
-### KV Cache effect
+#### KV Cache effect
 
 Append-only. The tool result follows the reusable conversation prefix and does not invalidate earlier cache entries.
 
-## Limits
+## Known Limitations and Deferred Work
 
-- `safeSearch: off` still requires the caller to handle potentially sensitive legal content appropriately.
-- `site:` and `-site:` query operators can reduce relevance; `site:` may return adult content regardless of SafeSearch.
-- A custom endpoint determines where the API key is sent and must use HTTPS.
-- Credential availability is asynchronous. `available()` can confirm that a resolver exists, but a selected provider with no resolved value fails when the search starts.
-- Real API coverage is opt-in: set `MICROSOFT_WEBIQ_API_KEY` before running `tests/microsoft-webiq.e2e.ts`.
+- **`safeSearch: off` does not transfer the caller's content duty** — Web IQ still blocks illegal content, but potentially sensitive legal content reaches the model unchanged; this package adds no further filtering.
+- **`site:` and `-site:` operators degrade the result set** — relevance drops, and `site:` can return adult content regardless of the configured SafeSearch mode.
+- **A custom `endpoint` receives the resolved key** — the deployment, not this package, decides where the credential is sent; only the HTTPS requirement is enforced locally.
+- **`available()` cannot confirm a resolvable credential** — resolution is asynchronous, so a selected provider with no stored or ambient value fails at search start with `WEB_PROVIDER_CREDENTIAL_MISSING` rather than at selection.
+- **Real-API coverage is opt-in** — `tests/microsoft-webiq.e2e.ts` self-skips unless `MICROSOFT_WEBIQ_API_KEY` is set, so drift in Web IQ's own responses surfaces only when a key is present.
 
 ## Development
 

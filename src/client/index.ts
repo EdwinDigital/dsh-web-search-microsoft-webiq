@@ -23,7 +23,10 @@ const SETTINGS_NS = 'web-search-microsoft-webiq'
 /** Browser services used by this package. */
 export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope']
 
-/** Mount the package-local card and its two settings scopes. */
+/**
+ * Mount the package-local card and its two settings scopes.
+ * @param ctx - browser plugin context carrying the injected client services.
+ */
 export function apply(ctx: ClientContext): void {
   const { api } = ctx.get('connection') as ConnectionHandle
   const providerScope = ctx.settingsScope.bind<MicrosoftWebIqClientSettings>({

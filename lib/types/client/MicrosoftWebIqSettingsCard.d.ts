@@ -17,6 +17,10 @@ export interface MicrosoftWebIqSettingsCardFace {
 }
 /** Props bound by the `settings.plugin.item` renderer. */
 export type MicrosoftWebIqSettingsCardProps = PropsRuntime<'settings.plugin.item'> & PropsLocale<'web-search.microsoft-webiq'> & InjectFace<MicrosoftWebIqSettingsCardFace>;
-/** Render the provider's package-local settings card. */
+/**
+ * Render the provider's package-local settings card.
+ * @param props - slot-composed translations, card state, and controller commands.
+ * @returns the card element mounted into the Plugins settings slot.
+ */
 export declare function MicrosoftWebIqSettingsCard(props: MicrosoftWebIqSettingsCardProps): import("react").JSX.Element | null;
 //# sourceMappingURL=MicrosoftWebIqSettingsCard.d.ts.map

@@ -40,7 +40,11 @@ interface SettingsDraft {
   safeSearch: 'strict' | 'off'
 }
 
-/** Render the provider's package-local settings card. */
+/**
+ * Render the provider's package-local settings card.
+ * @param props - slot-composed translations, card state, and controller commands.
+ * @returns the card element mounted into the Plugins settings slot.
+ */
 export function MicrosoftWebIqSettingsCard(props: MicrosoftWebIqSettingsCardProps) {
   const { t } = props
   const state = props.useMicrosoftWebIqSettings(value => value)
