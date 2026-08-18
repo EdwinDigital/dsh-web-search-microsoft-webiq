@@ -34,6 +34,23 @@ Either form records the dependency, appends the package to the profile's `dsh.pr
 
 The credential reference resolves from the schema default; a deployment states `apiKeyEnv` in the row only to redirect the lookup.
 
+### Peer dependencies stay unresolved by design
+
+Every harness package this plugin uses is an optional peer, and `pnpm peers check` inside the profile reports all of them missing. That is the expected state, not a broken install: bundles resolve from the running dsh installation through `$DSH_HOME/profiles/node_modules`, a directory the harness maintains and pnpm never sees. Marking them optional keeps the package manager from installing a competing copy — the failure mode that made the first git install unusable.
+
+A peer therefore reports missing right up until the plugin loads it successfully. The signal that actually matters is the dsh boot: an absent package fails there by name.
+
+### Replacing an earlier install
+
+An install that predates this repository points at the package's old name and location. Remove it before adding this one, or the profile keeps a bundle entry whose target no longer exists:
+
+```sh
+dsh plugin --profile web remove @deepseek-ai/dsh-web-search-microsoft-webiq
+dsh plugin --profile web add github:EdwinDigital/dsh-web-search-microsoft-webiq
+```
+
+Skipping the removal fails the next boot with `cannot resolve profile bundle`, naming the entry to remove. A running server keeps its loaded plugins, so restart it after either command.
+
 A composition that mounts rows directly states the same row beside the seam and the tool:
 
 ```yaml
@@ -138,3 +155,13 @@ Append-only. The tool result follows the reusable conversation prefix and does n
 - A custom endpoint determines where the API key is sent and must use HTTPS.
 - Credential availability is asynchronous. `available()` can confirm that a resolver exists, but a selected provider with no resolved value fails when the search starts.
 - Real API coverage is opt-in: set `MICROSOFT_WEBIQ_API_KEY` before running `tests/microsoft-webiq.e2e.ts`.
+
+## Development
+
+`npm run build` runs `tsc -b` for the declarations and `tsdown` for both halves. Only what the manifest publishes is tracked: `lib/index.js`, `lib/invariant.js`, `lib/client.js` with its map, and `lib/types/**/*.d.ts`.
+
+Committing the artifact removes the install-time build and moves an obligation onto every change: **rebuild and commit `lib/` in the same commit as any `src/` edit.** Nothing enforces this, and a stale artifact is silent — installers keep resolving the previous code with no warning at any layer. `git status` after a build is the check, which works because the build is deterministic: repeated builds of unchanged sources produce byte-identical output, so any diff is a real change.
+
+The browser half is bundled to the harness client-loader contract: a CJS closure handed to `window.__ModuleLoader__.load`, platform modules kept external so they resolve from the frozen module table, and CSS Modules compiled through lightningcss into one injected style tag. That contract lives in a harness build helper that is not a published package, so `tsdown.config.ts` reproduces it here. A harness change to the loader format would break this plugin at load time; the wrapper header in `lib/client.js` is what to compare against.
+
+Type checking needs the harness packages resolvable. There is no release to install them from, so point the peers at a harness checkout — linking its workspace packages into `node_modules` — before running `npm run typecheck`.

@@ -104,7 +104,11 @@ const browserHalf: UserConfig = {
         minify: true,
       })
       const classMap: Record<string, string> = {}
-      for (const [local, exported] of Object.entries(cssExports ?? {})) classMap[local] = exported.name
+      // lightningcss does not order its exports map stably; the artifact is
+      // committed, so an unsorted map would diff on every rebuild.
+      for (const [local, exported] of Object.entries(cssExports ?? {}).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) {
+        classMap[local] = exported.name
+      }
       return [
         `const css = ${JSON.stringify(code.toString())};`,
         `const tagId = ${JSON.stringify(`${ID}/${basename(fileId)}`)};`,
