@@ -17,6 +17,9 @@ import { en, zh } from './locales.ts'
 /** Locale namespace owned by this browser plugin. */
 export const NS = 'web-search.microsoft-webiq'
 
+/** Host settings namespace this card edits, which is also its slot key. */
+const SETTINGS_NS = 'web-search-microsoft-webiq'
+
 /** Browser services used by this package. */
 export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope']
 
@@ -24,7 +27,7 @@ export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope
 export function apply(ctx: ClientContext): void {
   const { api } = ctx.get('connection') as ConnectionHandle
   const providerScope = ctx.settingsScope.bind<MicrosoftWebIqClientSettings>({
-    namespace: 'web-search-microsoft-webiq',
+    namespace: SETTINGS_NS,
   })
   const webScope = ctx.settingsScope.bind<WebRuntimeClientSettings>({ namespace: 'web' })
   const controller = new MicrosoftWebIqSettingsController(providerScope, webScope, api)
@@ -41,8 +44,7 @@ export function apply(ctx: ClientContext): void {
 
   ctx.slots.inject('settings.plugin.item', () => ctx.slots.register({
     name: 'settings.plugin.item',
-    id: 'web-search-microsoft-webiq',
-    order: 30,
+    key: SETTINGS_NS,
     locale: NS,
     inject: () => ({
       hooks: { microsoftWebIqSettings: controller.store },
