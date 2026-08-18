@@ -6,7 +6,21 @@ A [Microsoft Web IQ](https://webiq.microsoft.ai/)-backed `WebSearchProvider` for
 
 This is one dual-half plugin package. Its Host half registers provider `microsoft-webiq`; its browser half contributes a package-local card to the Plugins settings page. It does not register `webiq_search` or any other model-facing tool. Agent calls continue to use the single `web_search` tool.
 
-Installing the package does not silently replace an existing search provider. The `web` seam keeps `deepseek-official` selected until the user clicks **Set as default** or stores `web.searchProvider: microsoft-webiq` explicitly.
+Installing the package does not silently replace an existing search provider. The `web` seam keeps `deepseek-official` selected until the user turns on **Use Web IQ for web search** in the card or stores `web.searchProvider: microsoft-webiq` explicitly.
+
+## Screenshots
+
+The card on the Plugins settings page. **Use Web IQ for web search** is the switch that selects this provider; turned off, `web_search` goes back to the composed default. Below it, one group holds the endpoint and the API key and another holds language, region, passage length, and SafeSearch. The password field is blank after load — the line under it reports only that a key is stored, which is all the card can say about a value it never reads back.
+
+![The Microsoft Web IQ settings card](docs/images/screenshot-1-settings.png)
+
+An agent answering from Web IQ results. Registration adds no tool, so the model issues the same `web_search` it always had — twice here — and nothing in the transcript names the provider. Only the sources behind the answer changed.
+
+![An agent answering from web_search results served by Web IQ](docs/images/screenshot-2-web-search.png)
+
+The session trace for one of those calls. The call takes 595 ms measured from session timestamps, and the turn's two calls total 1.2 s against 43.4 s of model time — retrieval is not where the turn spends its time.
+
+![The session trace for one web_search call](docs/images/screenshot-3-trace.png)
 
 ## Installation and selection
 
