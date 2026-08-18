@@ -164,9 +164,39 @@ content-type: application/json
 
 仅追加。工具结果位于可复用的对话前缀之后，不会使更早的缓存条目失效。
 
+## 接入 Web IQ 的其他方法
+
+本包只注册一个搜索提供方，因此每次 `web_search` 都发往 web 端点。Web IQ 另外提供一个 Streamable HTTP MCP 服务器，把 `web`、`videos`、`browse`、`news`、`images` 暴露为五个独立工具——这是唯一由模型逐次挑选方法、而非由部署一次性替所有调用选定的路径。
+
+在本包旁组合 `@deepseek-ai/dsh-mcp-client`：
+
+```yaml
+- id: web-search-microsoft-webiq
+  name: '@edwindigital/dsh-web-search-microsoft-webiq'
+
+- id: mcp-webiq
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: webiq
+    transport: streamable-http
+    url: https://api.microsoft.ai/v3/mcp
+    headers:
+      x-apikey: !!js process.env.MICROSOFT_WEBIQ_API_KEY
+```
+
+随后模型会在 `web_search` 之外看到 `mcp__webiq__web`、`mcp__webiq__videos`、`mcp__webiq__browse`、`mcp__webiq__news` 与 `mcp__webiq__images`。Web IQ 会按调用密钥的可用服务范围裁剪该列表，密钥无权使用的工具不会出现。这些工具绕过 `ctx.web`：其结果不会规范化为 `WebSearchSource`，`maxResults` 与设置卡片都够不到它们，`web.searchProvider` 也不在它们之间做选择。
+
+### 两侧共用一把密钥
+
+两侧引用的是同一个名字 `MICROSOFT_WEBIQ_API_KEY`，但读取机制不同，因此值存放在哪一层决定了一把密钥能否同时服务两侧。
+
+加载器针对 `process.env` 求值 `headers`，而启动环境会把它的每一层都落到那里。因此放在启动 shell、`<cwd>/.env` 或 `$DSH_HOME/.env` 中的密钥既能到达 MCP 条目，也能经凭据提供方到达本包——一把密钥，只配置一次。
+
+在设置卡片中输入的密钥则不行：该写入经凭据 RPC 进入凭据提供方的托管文档，而加载器从不读取它。优先选择 `$DSH_HOME/.env`，它位于该文档之下，因此卡片仍会把引用报告为已配置并仍接受替换；代价是此后经卡片保存的替换密钥对 `web_search` 的优先级高于 `.env`，而 MCP 工具仍读取 `process.env` 中的值。启动 shell 会直接遮蔽托管文档，从而消除这种分叉，代价是卡片的密码框变为只读。
+
 ## 已知限制与暂缓事项
 
-- **搜索侧只接入了 `/v3/search/web`**：Web IQ 另有 news（可信来源、仅近 14 天）、videos、images 与 classic 多答案端点，但 `WebSearchRequest` 只承载查询与结果上限，调用方无从指定方法，每次搜索都以 `contentFormat: passage` 发往 web 端点。提供方专属模式需等待与提供方无关的 Service Definition 字段。
+- **搜索侧只接入了 `/v3/search/web`**：Web IQ 另有 news（可信来源、仅近 14 天）、videos、images 与 classic 多答案端点，但 `WebSearchRequest` 只承载查询与结果上限，调用方无从指定方法，每次搜索都以 `contentFormat: passage` 发往 web 端点。提供方专属模式需等待与提供方无关的 Service Definition 字段；[接入 Web IQ 的其他方法](#接入-web-iq-的其他方法)是当下能够触及它们的路径，且位于本 seam 之外。
 - **未为 `/v3/browse` 注册 fetch 提供方**：seam 已在 `web_fetch` 工具背后备有 `registerFetchProvider` 角色且无需新增字段，因此 `web_fetch` 调用会落到组合中的其他提供方，而非 Web IQ 自身的抽取能力及其 `liveCrawl=fallback` 重试路径。
 - **`safeSearch: off` 不转移调用方的内容责任**：Web IQ 仍会拦截违法内容，但可能敏感的合法内容会原样进入模型；本包不做进一步过滤。
 - **`site:` 与 `-site:` 操作符会削弱结果集**：相关性下降，且无论配置何种安全搜索模式，`site:` 都可能返回成人内容。

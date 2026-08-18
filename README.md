@@ -164,9 +164,39 @@ Registration costs zero model tokens. Result tokens scale with the number and `m
 
 Append-only. The tool result follows the reusable conversation prefix and does not invalidate earlier cache entries.
 
+## Reaching the other Web IQ methods
+
+This package registers one search provider, so every `web_search` posts to the web endpoint. Web IQ also publishes a Streamable HTTP MCP server exposing `web`, `videos`, `browse`, `news`, and `images` as five separate tools — the one route where the model picks the method per call instead of a deployment picking it once for every call.
+
+Compose `@deepseek-ai/dsh-mcp-client` next to this package:
+
+```yaml
+- id: web-search-microsoft-webiq
+  name: '@edwindigital/dsh-web-search-microsoft-webiq'
+
+- id: mcp-webiq
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: webiq
+    transport: streamable-http
+    url: https://api.microsoft.ai/v3/mcp
+    headers:
+      x-apikey: !!js process.env.MICROSOFT_WEBIQ_API_KEY
+```
+
+The model then sees `mcp__webiq__web`, `mcp__webiq__videos`, `mcp__webiq__browse`, `mcp__webiq__news`, and `mcp__webiq__images` beside `web_search`. Web IQ scopes that list to the calling key's allowed services, so a tool the key may not use never appears. These tools bypass `ctx.web`: their results are not normalized into `WebSearchSource`, `maxResults` and the settings card do not reach them, and `web.searchProvider` does not select among them.
+
+### One key for both halves
+
+Both halves name the same reference, `MICROSOFT_WEBIQ_API_KEY`, but they read it through different mechanisms, so which layer holds the value decides whether one key serves both.
+
+The loader evaluates `headers` against `process.env`, and the launch environment materializes each of its layers there. A key in the launching shell, `<cwd>/.env`, or `$DSH_HOME/.env` therefore reaches the MCP entry and, through the credential provider, this package as well — one key, configured once.
+
+A key typed into the settings card does not: that write crosses the credentials RPC into the credential provider's managed document, which the loader never reads. Prefer `$DSH_HOME/.env`, which sits below that document, so the card still reports the reference as configured and still accepts a replacement; the cost is that a replacement saved there outranks `.env` for `web_search` while the MCP tools keep reading the `process.env` value. The launching shell removes that split by shadowing the managed document outright, at the price of a read-only password field on the card.
+
 ## Known Limitations and Deferred Work
 
-- **Only `/v3/search/web` is wired for search** — Web IQ also serves news (trusted sources, last 14 days), videos, images, and classic multi-answer, but `WebSearchRequest` carries only a query and a result bound, so no caller can name a method and every search posts `contentFormat: passage` to the web endpoint. Provider-specific modes wait on provider-neutral Service Definition fields.
+- **Only `/v3/search/web` is wired for search** — Web IQ also serves news (trusted sources, last 14 days), videos, images, and classic multi-answer, but `WebSearchRequest` carries only a query and a result bound, so no caller can name a method and every search posts `contentFormat: passage` to the web endpoint. Provider-specific modes wait on provider-neutral Service Definition fields; [Reaching the other Web IQ methods](#reaching-the-other-web-iq-methods) is the route that reaches them today, outside this seam.
 - **No fetch provider for `/v3/browse`** — the seam already has a `registerFetchProvider` role behind the `web_fetch` tool and needs no new field, so a `web_fetch` call reaches whichever other provider is composed rather than Web IQ's own extraction and its `liveCrawl=fallback` retry path.
 - **`safeSearch: off` does not transfer the caller's content duty** — Web IQ still blocks illegal content, but potentially sensitive legal content reaches the model unchanged; this package adds no further filtering.
 - **`site:` and `-site:` operators degrade the result set** — relevance drops, and `site:` can return adult content regardless of the configured SafeSearch mode.
