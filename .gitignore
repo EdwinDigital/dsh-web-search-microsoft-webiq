@@ -1,4 +1,10 @@
-lib/
 node_modules/
 *.tsbuildinfo
 .DS_Store
+
+# Build output is tracked so a git install needs no build step, which keeps the
+# harness peer dependencies out of the installer's own resolution. Only what the
+# manifest publishes is tracked; the rest is tsc's incidental emit.
+lib/types/**/*.js
+lib/types/**/*.js.map
+lib/types/**/*.d.ts.map

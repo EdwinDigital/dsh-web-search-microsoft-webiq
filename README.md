@@ -16,13 +16,13 @@ The package is an installable profile bundle, so the shipped composition mounts 
 dsh plugin --profile web add @edwindigital/dsh-web-search-microsoft-webiq
 ```
 
-Or install this repository directly, which builds the plugin through its `prepare` script:
+Or install this repository directly:
 
 ```sh
 dsh plugin --profile web add github:EdwinDigital/dsh-web-search-microsoft-webiq
 ```
 
-pnpm blocks a git dependency's build script until it is allowed; the first run prints the exact key to add under `allowBuilds` in the profile's `pnpm-workspace.yaml`.
+The build output is committed, so a git install runs no build step. That is deliberate: preparing a git-hosted package runs `npm install` in a scratch tree, and npm auto-installs peer dependencies — which would pull a second, registry-resolved copy of the harness whose internal version constraints conflict with the installation this plugin is meant to extend. Shipping the artifact keeps the harness packages purely as peers resolved from the running installation.
 
 Either form records the dependency, appends the package to the profile's `dsh.profile.bundles`, and layers this package's own patch after the shipped bundles:
 

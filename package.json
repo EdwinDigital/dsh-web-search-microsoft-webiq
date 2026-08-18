@@ -58,8 +58,7 @@
   },
   "scripts": {
     "build": "tsc -b tsconfig.json && tsdown",
-    "typecheck": "tsc -b tsconfig.json",
-    "prepare": "npm run build"
+    "typecheck": "tsc -b tsconfig.json"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "*",
