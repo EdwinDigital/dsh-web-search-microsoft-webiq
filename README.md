@@ -135,7 +135,7 @@ content-type: application/json
 }
 ```
 
-`language` and `region` are omitted unless configured. `maxResults` defaults to 10 for a direct provider call and is capped at Web IQ's maximum of 50. Queries longer than 1,000 characters fail locally before credential or network work begins.
+`language` and `region` are omitted unless configured. `maxResults` is forwarded only when the caller sets one — an unbounded request omits the field and takes Web IQ's own default — and an explicit value is capped at Web IQ's maximum of 50. Queries longer than 1,000 characters fail locally before credential or network work begins.
 
 Every `webResults[]` item maps as follows:
 
@@ -198,6 +198,7 @@ A key typed into the settings card does not: that write crosses the credentials 
 
 - **Only `/v3/search/web` is wired for search** — Web IQ also serves news (trusted sources, last 14 days), videos, images, and classic multi-answer, but `WebSearchRequest` carries only a query and a result bound, so no caller can name a method and every search posts `contentFormat: passage` to the web endpoint. Provider-specific modes wait on provider-neutral Service Definition fields; [Reaching the other Web IQ methods](#reaching-the-other-web-iq-methods) is the route that reaches them today, outside this seam.
 - **No fetch provider for `/v3/browse`** — the seam already has a `registerFetchProvider` role behind the `web_fetch` tool and needs no new field, so a `web_fetch` call reaches whichever other provider is composed rather than Web IQ's own extraction and its `liveCrawl=fallback` retry path.
+- **A request for more than 50 results is capped without a signal** — Web IQ's own maximum is 50, and `truncated` reports seam-side dropping rather than a provider limit, so a caller asking for more receives at most 50 with nothing marking the difference.
 - **`safeSearch: off` does not transfer the caller's content duty** — Web IQ still blocks illegal content, but potentially sensitive legal content reaches the model unchanged; this package adds no further filtering.
 - **`site:` and `-site:` operators degrade the result set** — relevance drops, and `site:` can return adult content regardless of the configured SafeSearch mode.
 - **A custom `endpoint` receives the resolved key** — the deployment, not this package, decides where the credential is sent; only the HTTPS requirement is enforced locally.

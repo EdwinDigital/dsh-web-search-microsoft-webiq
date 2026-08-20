@@ -102,13 +102,22 @@ describe('MicrosoftWebIqSearchProvider request mapping', () => {
     const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
     expect(JSON.parse(init.body as string)).toEqual({
       query: 'q',
-      maxResults: 10,
       language: 'en',
       region: 'US',
       contentFormat: 'passage',
       maxLength: 5000,
       safeSearch: 'strict',
     })
+  })
+
+  it('omits maxResults when the caller sets no bound', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(WEB_RESPONSE))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await provider().search({ query: 'q' })
+
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(JSON.parse(init.body as string)).not.toHaveProperty('maxResults')
   })
 
   it('caps the provider request at 50 results', async () => {

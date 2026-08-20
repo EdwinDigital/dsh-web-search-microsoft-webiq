@@ -135,7 +135,7 @@ content-type: application/json
 }
 ```
 
-未配置时省略 `language` 与 `region`。直接调用提供方时 `maxResults` 默认为 10，并受 Web IQ 上限 50 约束。超过 1000 字符的查询在凭据与网络工作开始前于本地失败。
+未配置时省略 `language` 与 `region`。仅当调用方给出 `maxResults` 时才转发——未设上限的请求会省略该字段，交由 Web IQ 自身的默认值处理——显式给出的值则受 Web IQ 上限 50 约束。超过 1000 字符的查询在凭据与网络工作开始前于本地失败。
 
 每个 `webResults[]` 条目按下表映射：
 
@@ -198,6 +198,7 @@ content-type: application/json
 
 - **搜索侧只接入了 `/v3/search/web`**：Web IQ 另有 news（可信来源、仅近 14 天）、videos、images 与 classic 多答案端点，但 `WebSearchRequest` 只承载查询与结果上限，调用方无从指定方法，每次搜索都以 `contentFormat: passage` 发往 web 端点。提供方专属模式需等待与提供方无关的 Service Definition 字段；[接入 Web IQ 的其他方法](#接入-web-iq-的其他方法)是当下能够触及它们的路径，且位于本 seam 之外。
 - **未为 `/v3/browse` 注册 fetch 提供方**：seam 已在 `web_fetch` 工具背后备有 `registerFetchProvider` 角色且无需新增字段，因此 `web_fetch` 调用会落到组合中的其他提供方，而非 Web IQ 自身的抽取能力及其 `liveCrawl=fallback` 重试路径。
+- **请求超过 50 条结果会被静默截断**：Web IQ 自身上限为 50，而 `truncated` 表示的是 seam 侧的丢弃而非提供方限制，因此请求更多的调用方最多得到 50 条，且没有任何标记说明这一差异。
 - **`safeSearch: off` 不转移调用方的内容责任**：Web IQ 仍会拦截违法内容，但可能敏感的合法内容会原样进入模型；本包不做进一步过滤。
 - **`site:` 与 `-site:` 操作符会削弱结果集**：相关性下降，且无论配置何种安全搜索模式，`site:` 都可能返回成人内容。
 - **自定义 `endpoint` 会收到解析出的密钥**：凭据发往何处由部署方而非本包决定；本地仅强制 HTTPS 这一项要求。

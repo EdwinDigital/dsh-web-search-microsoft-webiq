@@ -8,3 +8,4 @@ node_modules/
 lib/types/**/*.js
 lib/types/**/*.js.map
 lib/types/**/*.d.ts.map
+lib/client.js.map

@@ -37,7 +37,6 @@
     "lib/index.js",
     "lib/invariant.js",
     "lib/client.js",
-    "lib/client.js.map",
     "cordis.patch.yml",
     "lib/types/**/*.d.ts"
   ],

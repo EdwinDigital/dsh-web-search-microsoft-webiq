@@ -30,7 +30,6 @@ export const MICROSOFT_WEBIQ_DEFAULT_MAX_LENGTH = 5000
 /** Default SafeSearch mode sent to Web IQ. */
 export const MICROSOFT_WEBIQ_DEFAULT_SAFE_SEARCH = 'strict' as const
 
-const DEFAULT_MAX_RESULTS = 10
 const MAX_RESULTS = 50
 const MAX_QUERY_LENGTH = 1000
 const MAX_CONTENT_LENGTH = 500000
@@ -110,7 +109,10 @@ export class MicrosoftWebIqSearchProvider implements WebSearchProvider {
     throwIfAborted(signal)
     const body: MicrosoftWebIqSearchRequestBody = {
       query: request.query,
-      maxResults: Math.min(request.maxResults ?? DEFAULT_MAX_RESULTS, MAX_RESULTS),
+      // An omitted bound stays omitted; Web IQ then applies its own default.
+      ...request.maxResults === undefined
+        ? {}
+        : { maxResults: Math.min(request.maxResults, MAX_RESULTS) },
       ...options.language !== undefined && options.language.length > 0
         ? { language: options.language }
         : {},

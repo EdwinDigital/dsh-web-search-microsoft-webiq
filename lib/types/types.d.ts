@@ -3,8 +3,8 @@
 export interface MicrosoftWebIqSearchRequestBody {
     /** Search query, limited by Web IQ to 1,000 characters. */
     readonly query: string;
-    /** Requested result count, capped at 50. */
-    readonly maxResults: number;
+    /** Requested result count, capped at 50; omitted when the caller set no bound. */
+    readonly maxResults?: number;
     /** Optional ISO 639-1 interface language. */
     readonly language?: string;
     /** Optional two-letter country or region code. */

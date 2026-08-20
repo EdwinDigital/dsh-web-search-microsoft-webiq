@@ -8,7 +8,9 @@ The harness pages remain authoritative and this file is a derived index: when th
 
 `WebSearchProvider` has exactly three members — `id`, `available()`, `search()` — and its authoritative declaration is `packages/web/web/src/types.ts`, not the subsystem page. Both methods document at that interface, so the implementations here carry no JSDoc of their own.
 
-**`available()` is synchronous and must not touch the network.** The harness `docs/subsystems/web.md` defines it as "a cheap LOCAL check (credential presence, parseable config)" and states the prohibition outright. Credential presence is named as in-scope, which collides with the credential seam being async — see the open deviation below.
+**`available()` is synchronous and must not touch the network.** The harness `docs/subsystems/web.md` defines it as "a cheap LOCAL check (credential presence, parseable config)" and states the prohibition outright.
+
+That parenthetical collides with the credential seam, whose `resolve()` is async and forbids caching across operations, so a credentials-backed provider cannot consult the store from `available()`. The in-tree reference implementation settles it: `packages/web/web-search-deepseek` treats an installed resolver as satisfying the credential half — `(options.apiKey?.length ?? 0) > 0 || options.resolveApiKey !== undefined` — with the resolver supplied unconditionally, exactly as here. Read against `web.md` alone this looks like a gap; it is the sanctioned shape, and the providers that check a resolved key directly (`web-search-exa`, `web-search-perplexity`) can only do so because they never use the credentials seam at all. Do not "fix" it toward those.
 
 **The seam owns the result bound, the provider owns the data.** `maxResults` is "passed through the seam and enforced on the way back — if a provider over-returns, the seam truncates `sources[]` and sets `truncated`". Two consequences bind every mapping here: an omitted `maxResults` means *no bound*, and `truncated` reports seam-side dropping only, so returning `false` unconditionally is correct rather than lazy. Applying the bound at the request layer is permitted purely as a cost optimisation, never as the enforcement.
 
@@ -90,14 +92,14 @@ These are workspace rules enforced by harness scripts over `packages/**`, and ad
 | "Every workspace package owns a `./invariant` companion" | scoped to workspace packages; the companion here is voluntary and `register()` accepts any npm name |
 | The whole fetch-side contract (`WebFetchProvider`, `WebFetchBody`, `WEB_INVALID_URL` … `WEB_UNSUPPORTED_CONTENT_TYPE`) | only a search provider is registered |
 
-## Known deviations
+## Conformance notes
 
-Verified against the current source. Each is a real gap, not a style preference.
+No deviation is outstanding. Two shapes look wrong when read against a single page and are not — both were checked against the in-tree implementations, and changing either would move this package away from the harness rather than toward it.
 
-- **`available()` never reflects credential presence.** `src/provider.ts` returns true when `options.resolveApiKey !== undefined`, and `resolveOptions` in `src/index.ts` supplies that function unconditionally, so the disjunct is always satisfied and the method reduces to "config parses". The provider reports itself usable with no key configured anywhere, which turns a clean auto-selection into `WEB_PROVIDER_AMBIGUOUS` when a second provider is registered, and defers the real failure to `search()`. The tension is genuine — `available()` is sync while `resolve()` is async and per-operation — so the honest resolutions are to check only the synchronously knowable layers, to track a last-known resolution, or to record the deviation deliberately. Doing none of the three is the current state.
-- **An omitted `maxResults` is given a bound.** `src/provider.ts` sends `request.maxResults ?? DEFAULT_MAX_RESULTS` with `DEFAULT_MAX_RESULTS = 10`, while the seam defines omission as no bound; `MAX_RESULTS = 50` also caps an explicit larger request. Neither is signalled, because `truncated` correctly stays seam-owned. In practice `dsh-tool-web` always sets the field, so only direct `ctx.web.search` callers see it.
-- **`Config.apiKey` accepts a secret value in configuration.** The credential seam exists so that configuration carries references only. The field is correctly `role('secret')` and is stripped from wire surfaces, but a value set through it is persisted in the settings document and possibly in `cordis.yml`.
-- **`files` publishes `lib/client.js.map`.** Publishing a JS map exposes the source and is excluded by the package-layout rule.
+- **`available()` reports usable whenever a resolver is installed.** This matches `web-search-deepseek` line for line; see the provider-contract section above for why the async credential seam leaves no better option.
+- **`Config.apiKey` accepts a literal secret for direct composition.** `web-search-deepseek` carries the same field with the same purpose. It is `role('secret')`, so wire surfaces strip it; a value set through it is still persisted in the settings document, which is why the README records it rather than the code forbidding it.
+
+Two real gaps were fixed rather than recorded: an omitted `maxResults` is now forwarded as omitted instead of defaulting to 10, and `lib/client.js.map` is no longer published — the harness client packages generate that map but keep it out of `files`, and their published payload is exactly `lib/index.js`, `lib/invariant.js`, `lib/client.js`, and `lib/types/**/*.d.ts`.
 
 ## Maintaining this file
 
