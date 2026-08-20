@@ -8,6 +8,8 @@ This package is developed against the DeepSeek Harness but lives outside its wor
 
 The harness gates (`verify-export-jsdoc`, `verify-package-invariants`, `verify-package-readme-limitations`, `verify-translation-pairing`, `doc-sync`) are workspace scripts and **do not reach this package**. Every obligation they would enforce is maintained by hand here; the sections below name the ones that have already been violated once.
 
+[docs/plugin-conventions.md](docs/plugin-conventions.md) carries the harness contracts themselves — the search-provider interface, the credential and settings seams, the invariant companion, the browser-half declaration, and the README format — each cited to its harness page. **Read it before changing provider behaviour, the settings card, or the manifest, and keep the change conforming to it.** It also lists the workspace rules that deliberately do not bind an out-of-tree package, so a harness rule is not adopted here by reflex, and it records the conformance gaps that are currently open.
+
 ## Repository layout
 
 ```
@@ -17,7 +19,8 @@ src/            plugin source; the Host half (index/provider/invariant) and the 
   client/       browser settings card, its controller, locales, and CSS Modules
 lib/            committed build artifact — see "The committed artifact"
 tests/          vitest specs at package level, never src/__tests__/
-docs/images/    README screenshots, referenced by relative path
+docs/           plugin-conventions.md, the harness contracts this package owes
+  images/       README screenshots, referenced by relative path
 cordis.patch.yml  the composition layer `dsh plugin add` appends
 ```
 
