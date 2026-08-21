@@ -3,12 +3,41 @@
 [English](README.md) | 中文
 
 [![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 由 [Microsoft Web IQ](https://webiq.microsoft.ai/) 支持的 `WebSearchProvider`，用于 harness [web 能力](https://github.com/deepseek-ai/deepseek-harness)（`ctx.web`）。本包调用 Web Search v3 REST 端点，把与查询相关的段落映射为 `@deepseek-ai/dsh-tool-web` 消费的、与提供方无关的 `WebSearchResult`。
 
 这是一个双半插件包。Host 半注册提供方 `microsoft-webiq`；浏览器半向插件设置页贡献一张包内卡片。它不注册 `webiq_search` 或任何其他面向模型的工具，智能体调用的仍是唯一的 `web_search` 工具。
 
 安装本包不会静默替换既有搜索提供方。在用户打开卡片中的 **使用 Web IQ 进行网页搜索** 开关、或显式写入 `web.searchProvider: microsoft-webiq` 之前，`web` seam 保持选中 `deepseek-official`。
+
+## 关于 Microsoft Web IQ
+
+微软将 Web IQ 描述为一套 AI 原生 API，让应用能够获取来自全网的实时真实信息——网页、新闻、图片与视频。本包消费其中之一：Web Search v3 端点。
+
+> [!IMPORTANT]
+> **Web IQ 面向部分 Azure 客户限量开放**，密钥无法自助获取。请先通过[等待列表](https://aka.ms/webiq-access)申请，再安装本插件。密钥无法解析时，提供方仍会注册，但每次搜索都以 `WEB_PROVIDER_CREDENTIAL_MISSING` 失败。
+
+微软为该服务公布的数据，其对比对象未具名：
+
+| 指标 | Web IQ | 对比组中最优者 |
+|---|---|---|
+| p95 延迟 | 164 ms | 406 ms |
+| Grounding satisfaction | 79.05 | 75.70 |
+
+来源：[Web IQ 官网](https://webiq.microsoft.ai/)，基于 3000 条生产采样查询、每次 10 条结果、每条结果 10000 字符。本包不对其做验证，而且下文记录的映射才决定最终到达模型的内容。
+
+本包在模型与该 API 之间所处的位置：
+
+```mermaid
+flowchart LR
+  M["对话模型"] -->|web_search| T["dsh-tool-web"]
+  T --> W["ctx.web seam"]
+  W -->|"选中的提供方"| P["本包<br/>microsoft-webiq"]
+  P -->|"POST /v3/search/web"| A["Microsoft Web IQ"]
+  A -->|"段落"| P
+  P -->|"WebSearchSource[]"| W
+```
 
 ## 截图
 

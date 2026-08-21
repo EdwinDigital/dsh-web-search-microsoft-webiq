@@ -3,12 +3,41 @@
 English | [中文](README.zh.md)
 
 [![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A [Microsoft Web IQ](https://webiq.microsoft.ai/)-backed `WebSearchProvider` for the harness [web capability](https://github.com/deepseek-ai/deepseek-harness) (`ctx.web`). The package calls the Web Search v3 REST endpoint and maps query-relevant passages into the provider-neutral `WebSearchResult` consumed by `@deepseek-ai/dsh-tool-web`.
 
 This is one dual-half plugin package. Its Host half registers provider `microsoft-webiq`; its browser half contributes a package-local card to the Plugins settings page. It does not register `webiq_search` or any other model-facing tool. Agent calls continue to use the single `web_search` tool.
 
 Installing the package does not silently replace an existing search provider. The `web` seam keeps `deepseek-official` selected until the user turns on **Use Web IQ for web search** in the card or stores `web.searchProvider: microsoft-webiq` explicitly.
+
+## About Microsoft Web IQ
+
+Microsoft describes Web IQ as a suite of AI-native APIs that give applications access to fresh, real-world intelligence from across the web — web pages, news, images, and videos. This package consumes one of them, the Web Search v3 endpoint.
+
+> [!IMPORTANT]
+> **Web IQ is in limited access for select Azure customers**, so a key is not self-service. Request one through the [waitlist](https://aka.ms/webiq-access) before installing. Without a resolvable key the provider still registers and then fails every search with `WEB_PROVIDER_CREDENTIAL_MISSING`.
+
+Figures Microsoft publishes for the service, against alternatives it does not name:
+
+| Measure | Web IQ | Best alternative in the set |
+|---|---|---|
+| p95 latency | 164 ms | 406 ms |
+| Grounding satisfaction | 79.05 | 75.70 |
+
+Source: the [Web IQ site](https://webiq.microsoft.ai/), over a 3,000-query production sample at 10 results and 10,000 characters per result. This package does not verify them, and the mapping documented below decides what actually reaches the model.
+
+Where this package sits between the model and that API:
+
+```mermaid
+flowchart LR
+  M["Conversation model"] -->|web_search| T["dsh-tool-web"]
+  T --> W["ctx.web seam"]
+  W -->|"selected provider"| P["this package<br/>microsoft-webiq"]
+  P -->|"POST /v3/search/web"| A["Microsoft Web IQ"]
+  A -->|"passages"| P
+  P -->|"WebSearchSource[]"| W
+```
 
 ## Screenshots
 
