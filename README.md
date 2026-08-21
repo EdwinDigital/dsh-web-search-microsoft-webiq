@@ -2,6 +2,8 @@
 
 English | [中文](README.zh.md)
 
+[![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
+
 A [Microsoft Web IQ](https://webiq.microsoft.ai/)-backed `WebSearchProvider` for the harness [web capability](https://github.com/deepseek-ai/deepseek-harness) (`ctx.web`). The package calls the Web Search v3 REST endpoint and maps query-relevant passages into the provider-neutral `WebSearchResult` consumed by `@deepseek-ai/dsh-tool-web`.
 
 This is one dual-half plugin package. Its Host half registers provider `microsoft-webiq`; its browser half contributes a package-local card to the Plugins settings page. It does not register `webiq_search` or any other model-facing tool. Agent calls continue to use the single `web_search` tool.
@@ -24,21 +26,21 @@ The session trace for one of those calls. The call takes 595 ms measured from se
 
 ## Installation and selection
 
-The package is an installable profile bundle, so the shipped composition mounts no Web IQ row until a profile installs it:
+The plugin is listed in [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin), so any storefront reading that list offers it. In `dsh-market`, open **Settings → Plugin Market**, search `webiq`, and install from the entry — it is filed under **Browser & web**:
 
-```sh
-dsh plugin --profile web add @edwindigital/dsh-web-search-microsoft-webiq
-```
+![The plugin listed in the dsh-market plugin marketplace](docs/images/screenshot-4-market.png)
 
-Or install this repository directly:
+The package is not on npm and its listing carries no prebuilt tarball, so the storefront installs from source — the same thing this command does:
 
 ```sh
 dsh plugin --profile web add github:EdwinDigital/dsh-web-search-microsoft-webiq
 ```
 
+Either route makes this an installed profile bundle, and the shipped composition mounts no Web IQ row until one of them runs.
+
 The build output is committed, so a git install runs no build step. That is deliberate: preparing a git-hosted package runs `npm install` in a scratch tree, and npm auto-installs peer dependencies — which would pull a second, registry-resolved copy of the harness whose internal version constraints conflict with the installation this plugin is meant to extend. Shipping the artifact keeps the harness packages purely as peers resolved from the running installation.
 
-Either form records the dependency, appends the package to the profile's `dsh.profile.bundles`, and layers this package's own patch after the shipped bundles:
+Either route records the dependency, appends the package to the profile's `dsh.profile.bundles`, and layers this package's own patch after the shipped bundles:
 
 ```yaml
 - insert:

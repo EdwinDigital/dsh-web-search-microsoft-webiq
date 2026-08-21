@@ -2,6 +2,8 @@
 
 [English](README.md) | 中文
 
+[![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
+
 由 [Microsoft Web IQ](https://webiq.microsoft.ai/) 支持的 `WebSearchProvider`，用于 harness [web 能力](https://github.com/deepseek-ai/deepseek-harness)（`ctx.web`）。本包调用 Web Search v3 REST 端点，把与查询相关的段落映射为 `@deepseek-ai/dsh-tool-web` 消费的、与提供方无关的 `WebSearchResult`。
 
 这是一个双半插件包。Host 半注册提供方 `microsoft-webiq`；浏览器半向插件设置页贡献一张包内卡片。它不注册 `webiq_search` 或任何其他面向模型的工具，智能体调用的仍是唯一的 `web_search` 工具。
@@ -24,21 +26,21 @@
 
 ## 安装与选用
 
-本包是可安装的 profile bundle，因此在 profile 安装它之前，出厂组合不会挂载任何 Web IQ 行：
+本插件已收录于 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin)，因此读取该列表的插件市场都会提供它。在 `dsh-market` 中打开**设置 → 插件市场**，搜索 `webiq`，从条目安装即可——它归在**浏览器与网页**分类下：
 
-```sh
-dsh plugin --profile web add @edwindigital/dsh-web-search-microsoft-webiq
-```
+![dsh-market 插件市场中的本插件条目](docs/images/screenshot-4-market.png)
 
-也可以直接安装本仓库：
+本包未发布到 npm，条目也没有附带预构建 tarball，因此市场执行的是源码安装——与下面这条命令等价：
 
 ```sh
 dsh plugin --profile web add github:EdwinDigital/dsh-web-search-microsoft-webiq
 ```
 
+无论走哪条路径，本包都是可安装的 profile bundle；在其中之一执行之前，出厂组合不会挂载任何 Web IQ 行。
+
 构建产物已提交，因此 git 安装不执行构建步骤。这是刻意为之：准备 git 托管的包会在临时目录中运行 `npm install`，而 npm 会自动安装 peer 依赖——这将拉取第二份由 registry 解析的 harness 副本，其内部版本约束与本插件意图扩展的那套安装相冲突。提交产物使 harness 各包纯粹作为 peer，由运行中的安装解析。
 
-两种方式都会记录依赖、把本包追加到 profile 的 `dsh.profile.bundles`，并把本包自己的 patch 叠加在出厂 bundle 之后：
+两条路径都会记录依赖、把本包追加到 profile 的 `dsh.profile.bundles`，并把本包自己的 patch 叠加在出厂 bundle 之后：
 
 ```yaml
 - insert:
