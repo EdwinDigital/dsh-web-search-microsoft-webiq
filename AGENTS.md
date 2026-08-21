@@ -71,6 +71,8 @@ Prose is current-state, one physical line per paragraph, one home per fact. Stat
 
 The marketplace entry lives in the `awesome-dsh-plugin` repository under `data/plugins/`, with screenshots keyed by repository URL in `data/screenshots.json`. Both READMEs there are generated — never hand-edit them, and change only this package's own entry.
 
+Pushing a `v*` tag runs [.github/workflows/publish.yml](.github/workflows/publish.yml), which publishes to npm. It installs nothing and builds nothing, because the harness peers are unresolvable on a runner and `lib/` is committed anyway; it guards the tag against the manifest version, checks the artifact is present, and rejects a payload carrying sources or maps. **So the tag must point at a commit whose `lib/` is already current** — the workflow cannot rebuild it, and a stale artifact publishes silently.
+
 ## Editing these instructions
 
 Keep each rule self-contained and verifiable against the code. Delete a rule when the behaviour it describes is gone; a convention document that outlives its subject teaches the wrong thing.

@@ -1,0 +1,72 @@
+# Publishes the committed artifact to npm when a v* tag is pushed.
+#
+# There is no build step, and that is deliberate rather than an omission: every
+# harness dependency is an optional peer with no published release, so a runner
+# cannot resolve them and `tsc -b` cannot run here. `lib/` is committed for the
+# same reason, so the tag already carries what npm receives. The guards below
+# check that artifact instead of rebuilding it.
+#
+# Authentication has two phases. npm configures a trusted publisher on an
+# existing package, so the first release authenticates with the NPM_TOKEN
+# secret. Once the package exists, add this workflow as a trusted publisher on
+# npmjs.com; the CLI prefers OIDC and falls back to the token, so this file does
+# not change — delete the secret afterwards.
+name: publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - name: Tag matches the manifest version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          manifest="$(node -p 'require("./package.json").version')"
+          if [ "$tag" != "$manifest" ]; then
+            echo "tag v$tag does not match package.json $manifest" >&2
+            exit 1
+          fi
+
+      - name: Committed artifact is present
+        run: |
+          for f in lib/index.js lib/invariant.js lib/client.js; do
+            if [ ! -s "$f" ]; then
+              echo "missing or empty: $f — rebuild and commit lib/" >&2
+              exit 1
+            fi
+          done
+
+      - name: Payload carries no source or maps
+        run: |
+          npm pack --dry-run --json > /tmp/pack.json
+          node -e '
+            const [entry] = require("/tmp/pack.json")
+            const bad = entry.files
+              .map(f => f.path)
+              .filter(p => p.endsWith(".map") || p.startsWith("src/"))
+            if (bad.length > 0) {
+              console.error("payload must not publish sources or maps: " + bad.join(", "))
+              process.exit(1)
+            }
+            console.log(`${entry.files.length} files, ${entry.size} bytes packed`)
+          '
+
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
