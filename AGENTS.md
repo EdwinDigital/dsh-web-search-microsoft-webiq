@@ -1,22 +1,22 @@
 # AGENTS.md
 
-An out-of-tree DeepSeek Harness plugin: the Microsoft Web IQ provider for the `ctx.web` search seam, plus the browser settings card that configures it.
+An out-of-tree DeepSeek Harness plugin: the Microsoft Web IQ provider for the `ctx.web` search seam, plus the browser Plugins-page item that configures it.
 
 ## Relationship to the harness conventions
 
 This package is developed against the DeepSeek Harness but lives outside its workspace, so the harness `AGENTS.md` and `packages/AGENTS.md` are the upstream authority and this file records only what differs or what an out-of-tree checkout cannot infer. Where the two disagree the harness wins, because a package that drifts from the seam it plugs into breaks at load, not at review. Nothing here re-states a rule that already holds verbatim upstream.
 
-The harness gates (`verify-export-jsdoc`, `verify-package-invariants`, `verify-package-readme-limitations`, `verify-translation-pairing`, `doc-sync`) are workspace scripts and **do not reach this package**. Every obligation they would enforce is maintained by hand here; the sections below name the ones that have already been violated once.
+The harness gates (`verify-export-jsdoc`, `verify-package-invariants`, `verify-package-meta`, `verify-package-readme-limitations`, `verify-translation-pairing`, `doc-sync`) are workspace scripts and **do not reach this package**. Every obligation they would enforce is maintained by hand here; the sections below name the ones that have already been violated once.
 
-[docs/plugin-conventions.md](docs/plugin-conventions.md) carries the harness contracts themselves — the search-provider interface, the credential and settings seams, the invariant companion, the browser-half declaration, and the README format — each cited to its harness page. **Read it before changing provider behaviour, the settings card, or the manifest, and keep the change conforming to it.** It also lists the workspace rules that deliberately do not bind an out-of-tree package, so a harness rule is not adopted here by reflex, and it records the conformance gaps that are currently open.
+[docs/plugin-conventions.md](docs/plugin-conventions.md) carries the harness contracts themselves — the search-provider interface, volatile configuration, credential handling, browser delivery, package metadata, and README format — each cited to its harness page. **Read it before changing provider behaviour, the settings item, or the manifest, and keep the change conforming to it.** It also lists the workspace rules that deliberately do not bind an out-of-tree package, so a harness rule is not adopted here by reflex, and it records the conformance gaps that are currently open.
 
 ## Repository layout
 
 ```
-src/            plugin source; the Host half (index/provider/invariant) and the browser half (client/)
+src/            plugin source; the Host half (index/provider) and the browser half (client/)
   types.ts      types only — no runtime code
-  invariant.ts  the package-owned ./invariant companion
-  client/       browser settings card, its controller, locales, and CSS Modules
+  client/       browser Plugins-page item, its controller, locales, and CSS Modules
+locale/         package display metadata discovered without activating the plugin
 lib/            committed build artifact — see "The committed artifact"
 tests/          vitest specs at package level, never src/__tests__/
 docs/           plugin-conventions.md, the harness contracts this package owes
@@ -49,10 +49,12 @@ The browser half is bundled to the harness client-loader contract — a CJS clos
 - **Optional services go through `ctx.get(name)`.** Only `web` is a declared injection; `credentials` and the launch environment are read per operation and may legitimately be absent.
 - **Heritage-declared members carry no JSDoc here.** `available()` and `search()` document at the declaring `WebSearchProvider` interface, and duplicating those docs is the error, not the omission.
 - **No hardcoded tunables.** Deployment-varying choices are validated `Config` fields changeable from `cordis.yml`; a `DEFAULT_*` constant is not configurability. Protocol constants and the Web IQ request contract stay fixed.
-- **Misconfiguration fails loud.** `validateConfig` throws at load for what is self-contained; a credential that cannot be resolved fails the operation with `WEB_PROVIDER_CREDENTIAL_MISSING` naming only the reference.
+- **Live fields are `Volatile<T>`.** Read every field once at search start with `.get()`; a settings write affects the next search without replacing the plugin instance, while an in-flight search keeps its captured values.
+- **Browser configuration uses the shared form service.** Bind `web-search-microsoft-webiq` and `web` through `ctx.configForms`, register under `plugins.item` only while the provider entry is served, and use the credentials Remote namespace for write-only key changes.
+- **Misconfiguration fails loud.** `validateConfig` throws at load and operation entry for what is self-contained; a credential that cannot be resolved fails the operation with `WEB_PROVIDER_CREDENTIAL_MISSING` naming only the reference.
 - **The credential-bearing request refuses redirects.** `redirect: 'error'` is a security invariant of sending the key to the configured endpoint, not a preference.
 - **Secrets never widen.** The key literal is `role('secret')`, and it stays out of Settings descriptions, browser boot data, logs, and error messages.
-- **This package owns `./invariant`.** It registers the manifest name with an explained-empty installer; the `No runtime invariant:` sentence is the required justification, not a placeholder to fill in later.
+- **No `./invariant` companion.** The package owns no independently observable mutable relationship, and current harness rules forbid empty companions or service-presence checks.
 - **Files end with exactly one trailing newline.**
 
 ## Documentation

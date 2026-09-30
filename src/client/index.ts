@@ -1,11 +1,11 @@
 /** Browser entry for the package-local Microsoft Web IQ settings card. */
 
-import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
-import type {} from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
+import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import { MicrosoftWebIqSettingsCard } from './MicrosoftWebIqSettingsCard.tsx'
 import {
   MicrosoftWebIqSettingsController,
@@ -15,29 +15,27 @@ import {
 import { en, zh } from './locales.ts'
 
 /** Locale namespace owned by this browser plugin. */
-export const NS = 'web-search.microsoft-webiq'
+const NS = 'web-search.microsoft-webiq'
 
 /** Host settings namespace this card edits, which is also its slot key. */
 const SETTINGS_NS = 'web-search-microsoft-webiq'
 
 /** Browser services used by this package. */
-export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope']
+export const inject = ['slots', 'locale', 'remote', 'remote.credentials', 'configForms']
 
 /**
  * Mount the package-local card and its two settings scopes.
  * @param ctx - browser plugin context carrying the injected client services.
  */
 export function apply(ctx: ClientContext): void {
-  const { api } = ctx.get('connection') as ConnectionHandle
-  const providerScope = ctx.settingsScope.bind<MicrosoftWebIqClientSettings>({
-    namespace: SETTINGS_NS,
-  })
-  const webScope = ctx.settingsScope.bind<WebRuntimeClientSettings>({ namespace: 'web' })
-  const controller = new MicrosoftWebIqSettingsController(providerScope, webScope, api)
+  const t = ctx.locale.bind(NS)
+  const providerScope = ctx.configForms.get<MicrosoftWebIqClientSettings>(SETTINGS_NS)
+  const webScope = ctx.configForms.get<WebRuntimeClientSettings>('web')
+  const controller = new MicrosoftWebIqSettingsController(providerScope, webScope, ctx.remote)
 
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'web-search-microsoft-webiq: dictionary')
   ctx.effect(
-    () => ctx.remote.$on('credentials/updated', (ref) => { controller.refreshCredential(ref) }),
+    () => ctx.remote.$on('credentials/reference-updated', (ref) => { controller.refreshCredential(ref) }),
     'web-search-microsoft-webiq: credential invalidation',
   )
   ctx.effect(
@@ -45,28 +43,27 @@ export function apply(ctx: ClientContext): void {
     'web-search-microsoft-webiq: settings controller',
   )
 
-  ctx.slots.inject('settings.plugin.item', () => ctx.slots.register({
-    name: 'settings.plugin.item',
-    key: SETTINGS_NS,
-    locale: NS,
-    inject: () => ({
-      hooks: { microsoftWebIqSettings: controller.store },
-      saveApiKey: (value: string) => controller.saveApiKey(value),
-      setDefault: (enabled: boolean) => controller.setDefault(enabled),
-      saveSettings: (patch: Parameters<typeof controller.saveSettings>[0]) =>
-        controller.saveSettings(patch),
-    }),
-  }, MicrosoftWebIqSettingsCard))
+  ctx.effect(() => ctx.configForms.whileServed([SETTINGS_NS], () =>
+    ctx.slots.inject('plugins.item', () => ctx.slots.register({
+      name: 'plugins.item',
+      id: SETTINGS_NS,
+      order: 50,
+      label: () => t('title'),
+      locale: NS,
+      inject: () => ({
+        hooks: { microsoftWebIqSettings: controller.store },
+        saveApiKey: (value: string) => controller.saveApiKey(value),
+        setDefault: (enabled: boolean) => controller.setDefault(enabled),
+        saveSettings: (patch: Parameters<typeof controller.saveSettings>[0]) =>
+          controller.saveSettings(patch),
+      }),
+    }, MicrosoftWebIqSettingsCard))), 'web-search-microsoft-webiq: settings page')
 }
 
-export { MicrosoftWebIqSettingsCard } from './MicrosoftWebIqSettingsCard.tsx'
 export type {
   MicrosoftWebIqSettingsCardFace,
   MicrosoftWebIqSettingsCardProps,
 } from './MicrosoftWebIqSettingsCard.tsx'
-export {
-  MicrosoftWebIqSettingsController,
-} from './controller.ts'
 export type {
   MicrosoftWebIqClientSettings,
   MicrosoftWebIqSettingsPatch,

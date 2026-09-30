@@ -2,8 +2,8 @@
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import { useSyncExternalStore } from 'react'
 import { MicrosoftWebIqSettingsCard } from '../src/client/MicrosoftWebIqSettingsCard.tsx'
 import type { MicrosoftWebIqSettingsCardProps } from '../src/client/MicrosoftWebIqSettingsCard.tsx'
 import type { MicrosoftWebIqSettingsState } from '../src/client/controller.ts'
@@ -32,14 +32,16 @@ const READY: MicrosoftWebIqSettingsState = {
   savingSettings: false,
 }
 
-function mount(state: Partial<MicrosoftWebIqSettingsState> = {}) {
+function mount(state: Partial<MicrosoftWebIqSettingsState> = {}, cardView: 'summary' | 'form' = 'form') {
   const store = createSnapshotStore<MicrosoftWebIqSettingsState>({ ...READY, ...state })
   const saveApiKey = vi.fn(() => Promise.resolve(true))
   const setDefault = vi.fn(() => Promise.resolve(true))
   const saveSettings = vi.fn(() => Promise.resolve(true))
   const props = {
     t: (key: keyof typeof en) => en[key],
-    useMicrosoftWebIqSettings: bindSnapshotSelector(store),
+    view: cardView,
+    useMicrosoftWebIqSettings: <T,>(selector: (value: MicrosoftWebIqSettingsState) => T) =>
+      useSyncExternalStore(store.subscribe, () => selector(store.getSnapshot())),
     saveApiKey,
     setDefault,
     saveSettings,
@@ -54,12 +56,12 @@ describe('MicrosoftWebIqSettingsCard', () => {
     expect(container.textContent).toBe('')
   })
 
-  it('starts collapsed and reveals a permanently blank password control', () => {
-    mount({ apiKeyConfigured: true })
-    expect(screen.getByText(en.title)).toBeTruthy()
-    expect(screen.queryByLabelText(en.apiKey)).toBeNull()
+  it('renders a summary and keeps the form password control permanently blank', () => {
+    const summary = mount({}, 'summary')
+    expect(summary.container.textContent).toBe(en.description)
+    summary.unmount()
 
-    fireEvent.click(screen.getByRole('button', { name: `${en.expand}: ${en.title}` }))
+    mount({ apiKeyConfigured: true })
 
     const input = screen.getByLabelText(en.apiKey)
     expect(input).toHaveProperty('type', 'password')
@@ -69,7 +71,6 @@ describe('MicrosoftWebIqSettingsCard', () => {
 
   it('refuses a blank key and clears an accepted replacement draft', async () => {
     const bench = mount()
-    fireEvent.click(screen.getByRole('button', { name: `${en.expand}: ${en.title}` }))
     const input = screen.getByLabelText(en.apiKey)
     const save = screen.getByRole('button', { name: en.saveSettings })
     expect(save).toHaveProperty('disabled', true)
@@ -84,7 +85,6 @@ describe('MicrosoftWebIqSettingsCard', () => {
 
   it('stores the key and the settings from one save command', async () => {
     const bench = mount()
-    fireEvent.click(screen.getByRole('button', { name: `${en.expand}: ${en.title}` }))
 
     fireEvent.change(screen.getByLabelText(en.apiKey), { target: { value: 'webiq-secret' } })
     fireEvent.change(screen.getByLabelText(en.endpoint), { target: { value: 'https://proxy.test/web' } })
@@ -100,7 +100,6 @@ describe('MicrosoftWebIqSettingsCard', () => {
 
   it('toggles the provider on and off through one switch', async () => {
     const bench = mount()
-    fireEvent.click(screen.getByRole('button', { name: `${en.expand}: ${en.title}` }))
     const toggle = screen.getByRole('switch', { name: en.useAsDefault })
     expect(toggle.getAttribute('aria-checked')).toBe('false')
 
@@ -116,7 +115,6 @@ describe('MicrosoftWebIqSettingsCard', () => {
 
   it('explains a key the launch environment owns instead of a dead control', () => {
     mount({ apiKeyConfigured: true, apiKeyWritable: false })
-    fireEvent.click(screen.getByRole('button', { name: `${en.expand}: ${en.title}` }))
 
     expect(screen.getByLabelText(en.apiKey)).toHaveProperty('disabled', true)
     expect(screen.getByText(en.apiKeyLocked)).toBeTruthy()
@@ -124,7 +122,6 @@ describe('MicrosoftWebIqSettingsCard', () => {
 
   it('stages and saves non-secret provider settings together', async () => {
     const bench = mount()
-    fireEvent.click(screen.getByRole('button', { name: `${en.expand}: ${en.title}` }))
 
     fireEvent.change(screen.getByLabelText(en.endpoint), { target: { value: 'https://proxy.test/web' } })
     fireEvent.change(screen.getByLabelText(en.language), { target: { value: 'zh' } })
@@ -146,7 +143,6 @@ describe('MicrosoftWebIqSettingsCard', () => {
 
   it('exposes no credential reference control', () => {
     mount()
-    fireEvent.click(screen.getByRole('button', { name: `${en.expand}: ${en.title}` }))
 
     expect(screen.getAllByRole('textbox').map(field => field.getAttribute('id')))
       .toEqual(['webiq-endpoint', 'webiq-language', 'webiq-region', 'webiq-max-length'])
@@ -154,7 +150,6 @@ describe('MicrosoftWebIqSettingsCard', () => {
 
   it('sends an explicit clear for an emptied optional setting', async () => {
     const bench = mount()
-    fireEvent.click(screen.getByRole('button', { name: `${en.expand}: ${en.title}` }))
 
     fireEvent.change(screen.getByLabelText(en.language), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: en.saveSettings }))
@@ -166,7 +161,6 @@ describe('MicrosoftWebIqSettingsCard', () => {
 
   it('preserves drafts the Host did not accept during a partial save', async () => {
     const bench = mount()
-    fireEvent.click(screen.getByRole('button', { name: `${en.expand}: ${en.title}` }))
     const endpoint = screen.getByLabelText(en.endpoint)
     fireEvent.change(endpoint, { target: { value: 'https://unaccepted.test/web' } })
     bench.saveSettings.mockImplementation(async () => {
@@ -196,7 +190,6 @@ describe('MicrosoftWebIqSettingsCard', () => {
 
   it('blocks an HTTPS-prefixed endpoint that is not a parseable URL', () => {
     mount()
-    fireEvent.click(screen.getByRole('button', { name: `${en.expand}: ${en.title}` }))
 
     fireEvent.change(screen.getByLabelText(en.endpoint), { target: { value: 'https://[' } })
 
@@ -206,7 +199,6 @@ describe('MicrosoftWebIqSettingsCard', () => {
 
   it('keeps credential writes independent from a read-only settings document', () => {
     mount({ writable: false, apiKeyWritable: true })
-    fireEvent.click(screen.getByRole('button', { name: `${en.expand}: ${en.title}` }))
 
     expect(screen.getByLabelText(en.apiKey)).toHaveProperty('disabled', false)
     expect(screen.getByLabelText(en.endpoint)).toHaveProperty('disabled', true)
@@ -215,7 +207,6 @@ describe('MicrosoftWebIqSettingsCard', () => {
 
   it('reports the command the Host did not accept', () => {
     mount({ failedAction: 'default' })
-    fireEvent.click(screen.getByRole('button', { name: `${en.expand}: ${en.title}` }))
 
     expect(screen.getByRole('status')).toHaveProperty('textContent', en.defaultFailed)
   })

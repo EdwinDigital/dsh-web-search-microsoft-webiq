@@ -1,12 +1,13 @@
 /** Browser-side state controller for Microsoft Web IQ configuration. */
 
-import type { IApiClient } from '@deepseek-ai/dsh-client-connection/client'
-import {
-  createSnapshotStore,
-  type SettingsScope,
-  type SettingsScopeSnapshot,
-  type SnapshotStore,
-} from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-api-remotes/client'
+import type { SettingsPathOpView } from '@deepseek-ai/dsh-api-remotes/client'
+import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type {
+  ConfigForm,
+  ConfigFormSnapshot,
+} from '@deepseek-ai/dsh-client-ui-settings/client'
 
 /** Provider settings mirrored from `web-search-microsoft-webiq`. */
 export interface MicrosoftWebIqClientSettings {
@@ -106,9 +107,9 @@ export class MicrosoftWebIqSettingsController {
    * @param api - credential wire face; key literals cross only this boundary.
    */
   constructor(
-    private readonly providerScope: SettingsScope<MicrosoftWebIqClientSettings>,
-    private readonly webScope: SettingsScope<WebRuntimeClientSettings>,
-    private readonly api: Pick<IApiClient, 'credentials'>,
+    private readonly providerScope: ConfigForm<MicrosoftWebIqClientSettings>,
+    private readonly webScope: ConfigForm<WebRuntimeClientSettings>,
+    private readonly remote: Pick<ClientContext['remote'], 'credentials'>,
   ) {
     this.store = createSnapshotStore(this.projection())
     this.disposers = [
@@ -145,7 +146,8 @@ export class MicrosoftWebIqSettingsController {
     this.publish()
     const ref = credentialRefOf(this.providerScope.getSnapshot())
     try {
-      await this.api.credentials.set({ ref, value: trimmed })
+      const response = await this.remote.credentials.set(ref, trimmed)
+      if (!response.ok) throw response.error
     } catch (_credentialWriteFailure) {
       // The following authoritative describe decides whether another layer accepted it.
     }
@@ -199,16 +201,20 @@ export class MicrosoftWebIqSettingsController {
     this.savingSettings = true
     this.failedAction = undefined
     this.publish()
-    let landed = true
-    for (const [field, value] of Object.entries(patch)) {
-      try {
-        if (value === undefined) await this.providerScope.unset(field)
-        else await this.providerScope.set(field, value)
-      } catch (_settingsWriteFailure) {
-        // The scope snapshot below decides whether this individual write landed.
-      }
-      landed = settingMatches(this.providerScope.getSnapshot(), field, value) && landed
+    const operations: SettingsPathOpView[] = Object.entries(patch).map(([field, value]) =>
+      value === undefined
+        ? { op: 'unset', path: [field] }
+        : { op: 'set', path: [field], value })
+    let accepted = false
+    try {
+      accepted = snapshot.revision === undefined
+        ? await this.providerScope.mutate(operations)
+        : await this.providerScope.mutate(operations, snapshot.revision)
+    } catch (_settingsWriteFailure) {
+      // The scope snapshot below remains authoritative.
     }
+    const landed = accepted && Object.entries(patch)
+      .every(([field, value]) => settingMatches(this.providerScope.getSnapshot(), field, value))
     this.savingSettings = false
     this.failedAction = landed ? undefined : 'settings'
     this.publish()
@@ -231,17 +237,17 @@ export class MicrosoftWebIqSettingsController {
       this.publish()
     }
     const generation = ++this.credentialGeneration
-    let response: Awaited<ReturnType<IApiClient['credentials']['describe']>>
+    let response: Awaited<ReturnType<ClientContext['remote']['credentials']['describe']>>
     try {
-      response = await this.api.credentials.describe({ refs: [ref] })
+      response = await this.remote.credentials.describe([ref])
     } catch (_credentialReadFailure) {
       return
     }
     if (this.disposed
       || generation !== this.credentialGeneration
       || ref !== credentialRefOf(this.providerScope.getSnapshot())
-      || !response.result.ok) return
-    const view = response.result.value.credentials[ref]
+      || !response.ok) return
+    const view = response.value[ref]
     this.credential = {
       ref,
       configured: view?.configured ?? false,
@@ -278,7 +284,7 @@ export class MicrosoftWebIqSettingsController {
 
 /** Resolve the configured credential reference or the provider default. */
 function credentialRefOf(
-  snapshot: SettingsScopeSnapshot<MicrosoftWebIqClientSettings>,
+  snapshot: ConfigFormSnapshot<MicrosoftWebIqClientSettings>,
 ): string {
   const ref = snapshot.value?.apiKeyEnv
   return ref !== undefined && ref.length > 0 ? ref : DEFAULT_API_KEY_REF
@@ -286,7 +292,7 @@ function credentialRefOf(
 
 /** Verify one settings mutation from the scope's accepted state. */
 function settingMatches(
-  snapshot: SettingsScopeSnapshot<MicrosoftWebIqClientSettings>,
+  snapshot: ConfigFormSnapshot<MicrosoftWebIqClientSettings>,
   field: string,
   expected: unknown,
 ): boolean {

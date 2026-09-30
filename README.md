@@ -7,7 +7,7 @@ English | [中文](README.zh.md)
 
 A [Microsoft Web IQ](https://webiq.microsoft.ai/)-backed `WebSearchProvider` for the harness [web capability](https://github.com/deepseek-ai/deepseek-harness) (`ctx.web`). The package calls the Web Search v3 REST endpoint and maps query-relevant passages into the provider-neutral `WebSearchResult` consumed by `@deepseek-ai/dsh-tool-web`.
 
-This is one dual-half plugin package. Its Host half registers provider `microsoft-webiq`; its browser half contributes a package-local card to the Plugins settings page. It does not register `webiq_search` or any other model-facing tool. Agent calls continue to use the single `web_search` tool.
+This is one dual-half plugin package. Its Host half registers provider `microsoft-webiq`; its browser half contributes a package-local item to the Plugins page. It does not register `webiq_search` or any other model-facing tool. Agent calls continue to use the single `web_search` tool.
 
 Installing the package does not silently replace an existing search provider. The `web` seam keeps `deepseek-official` selected until the user turns on **Use Web IQ for web search** in the card or stores `web.searchProvider: microsoft-webiq` explicitly.
 
@@ -144,7 +144,7 @@ The browser card writes replacement keys only through the credentials RPC. The p
 | `maxLength` | `5000` | Maximum passage characters per result; positive integer, maximum `500000`. |
 | `safeSearch` | `strict` | `strict` or `off`. Web IQ still blocks illegal content when set to `off`. |
 
-The Host owns settings namespace `web-search-microsoft-webiq`; provider selection lives separately in namespace `web`. The card opens with a switch that selects Web IQ for `web_search` and, once off, clears the user override so the composed provider applies again. Below it, one API configuration group holds the endpoint and the API key, a search parameter group holds language, region, passage length, and SafeSearch, and a single command at the bottom commits both owners: the key crosses the credentials RPC and the rest goes to the settings namespace. The credential reference stays a deployment choice made in `cordis.yml`, so no configuration surface asks a user for an environment variable name. Each owner is read back after a write, so a refused operation is reported rather than presented as accepted.
+The Host exposes the plugin entry `web-search-microsoft-webiq` as a profile-backed live Config form; provider selection lives separately in the `web` entry. Every editable field is volatile, so the next search reads saved values without replacing the plugin instance, while an in-flight search keeps its starting snapshot. The Plugins-page form starts with a switch that selects Web IQ for `web_search` and, once off, clears the user override so the composed provider applies again. Below it, one API configuration group holds the endpoint and the API key, a search parameter group holds language, region, passage length, and SafeSearch, and a single command at the bottom commits both owners: the key crosses the credentials RPC and the rest uses revision-fenced profile mutations. The credential reference stays a deployment choice made in `cordis.yml`, so no configuration surface asks a user for an environment variable name. Each owner is read back after a write, so a refused operation is reported rather than presented as accepted.
 
 ## REST contract and mapping
 
@@ -238,7 +238,7 @@ A key typed into the settings card does not: that write crosses the credentials 
 
 ## Development
 
-`npm run build` runs `tsc -b` for the declarations and `tsdown` for both halves. Only what the manifest publishes is tracked: `lib/index.js`, `lib/invariant.js`, `lib/client.js` with its map, and `lib/types/**/*.d.ts`.
+`npm run build` runs `tsc -b` for the declarations and `tsdown` for both halves. Only what the manifest publishes is tracked: `lib/index.js`, `lib/client.js`, `locale/*.json`, and `lib/types/**/*.d.ts`; source maps stay outside the package payload.
 
 Committing the artifact removes the install-time build and moves an obligation onto every change: **rebuild and commit `lib/` in the same commit as any `src/` edit.** Nothing enforces this, and a stale artifact is silent — installers keep resolving the previous code with no warning at any layer. `git status` after a build is the check, which works because the build is deterministic: repeated builds of unchanged sources produce byte-identical output, so any diff is a real change.
 

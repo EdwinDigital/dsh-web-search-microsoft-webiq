@@ -1,9 +1,8 @@
 /** Register Microsoft Web IQ as a provider in the DSH web capability. */
 
-import type { Context } from '@deepseek-ai/cordis'
+import type { Context, Volatile } from '@deepseek-ai/cordis'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
-import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-web'
 import z from '@deepseek-ai/schemastery'
 import {
@@ -39,49 +38,59 @@ const ISO_CODE_PATTERN = /^[A-Za-z]{2}$/u
 /** Plugin configuration and settings fields. */
 export interface Config {
   /** Literal API key for direct composition; prefer {@link apiKeyEnv}. */
-  readonly apiKey?: string
+  readonly apiKey: Volatile<string | undefined>
   /** Credential reference resolved for each search. */
-  readonly apiKeyEnv?: string
+  readonly apiKeyEnv: Volatile<string>
   /** Full Microsoft Web IQ Web Search endpoint. */
-  readonly endpoint?: string
+  readonly endpoint: Volatile<string>
   /** Optional ISO 639-1 interface language. */
-  readonly language?: string
+  readonly language: Volatile<string | undefined>
   /** Optional two-letter country or region code. */
-  readonly region?: string
+  readonly region: Volatile<string | undefined>
   /** Maximum characters requested for each result passage. */
-  readonly maxLength?: number
+  readonly maxLength: Volatile<number>
   /** Web IQ SafeSearch mode. */
-  readonly safeSearch?: 'strict' | 'off'
+  readonly safeSearch: Volatile<'strict' | 'off'>
 }
 
 /** Runtime validation and browser-renderable metadata for {@link Config}. */
-export const Config: z<Config> = z.object({
-  apiKey: z.string().role('secret'),
+export const Config = z.object({
+  apiKey: z.string().role('secret').volatile(),
   apiKeyEnv: z.string()
     .pattern(CREDENTIAL_REF_PATTERN)
     .role('credential-ref')
-    .default(MICROSOFT_WEBIQ_DEFAULT_API_KEY_ENV),
+    .default(MICROSOFT_WEBIQ_DEFAULT_API_KEY_ENV)
+    .volatile(),
   endpoint: z.string()
     .pattern(HTTPS_ENDPOINT_PATTERN)
-    .default(MICROSOFT_WEBIQ_DEFAULT_ENDPOINT),
-  language: z.string().pattern(ISO_CODE_PATTERN),
-  region: z.string().pattern(ISO_CODE_PATTERN),
+    .default(MICROSOFT_WEBIQ_DEFAULT_ENDPOINT)
+    .volatile(),
+  language: z.string().pattern(ISO_CODE_PATTERN).volatile(),
+  region: z.string().pattern(ISO_CODE_PATTERN).volatile(),
   maxLength: z.number()
     .step(1)
     .min(1)
     .max(500000)
-    .default(MICROSOFT_WEBIQ_DEFAULT_MAX_LENGTH),
+    .default(MICROSOFT_WEBIQ_DEFAULT_MAX_LENGTH)
+    .volatile(),
   safeSearch: z.union(['strict', 'off'] as const)
-    .default(MICROSOFT_WEBIQ_DEFAULT_SAFE_SEARCH),
+    .default(MICROSOFT_WEBIQ_DEFAULT_SAFE_SEARCH)
+    .volatile(),
 })
 
-/** Settings namespace carrying this provider's current configuration. */
-export const WEB_SEARCH_MICROSOFT_WEBIQ_SETTINGS_NAMESPACE =
-  settingsNamespace('web-search-microsoft-webiq')
+interface ResolvedConfig {
+  readonly apiKey?: string
+  readonly apiKeyEnv: string
+  readonly endpoint: string
+  readonly language?: string
+  readonly region?: string
+  readonly maxLength: number
+  readonly safeSearch: 'strict' | 'off'
+}
 
 /** Reject runtime constraints that are stricter than the serialized schema. */
-function validateConfig(config: Config): void {
-  const endpoint = config.endpoint ?? MICROSOFT_WEBIQ_DEFAULT_ENDPOINT
+function validateConfig(config: ResolvedConfig): void {
+  const endpoint = config.endpoint
   if (!URL.canParse(endpoint) || new URL(endpoint).protocol !== 'https:') {
     throw new TypeError('web-search-microsoft-webiq endpoint must be an absolute HTTPS URL')
   }
@@ -91,7 +100,7 @@ function validateConfig(config: Config): void {
   if (config.region !== undefined && !ISO_CODE_PATTERN.test(config.region)) {
     throw new TypeError('web-search-microsoft-webiq region must be a two-letter country or region code')
   }
-  const maxLength = config.maxLength ?? MICROSOFT_WEBIQ_DEFAULT_MAX_LENGTH
+  const maxLength = config.maxLength
   if (!Number.isInteger(maxLength) || maxLength < 1 || maxLength > 500000) {
     throw new TypeError('web-search-microsoft-webiq maxLength must be an integer between 1 and 500000')
   }
@@ -105,9 +114,10 @@ function validateConfig(config: Config): void {
  */
 function resolveOptions(
   ctx: Context,
-  config: Config,
+  config: ResolvedConfig,
 ): MicrosoftWebIqSearchProviderOptions {
-  const apiKeyEnv = credentialRef(config.apiKeyEnv ?? MICROSOFT_WEBIQ_DEFAULT_API_KEY_ENV)
+  validateConfig(config)
+  const apiKeyEnv = credentialRef(config.apiKeyEnv)
   const literalApiKey = config.apiKey !== undefined && config.apiKey.length > 0
     ? config.apiKey
     : undefined
@@ -120,11 +130,27 @@ function resolveOptions(
       return ambient !== undefined && ambient.value.length > 0 ? ambient.value : undefined
     },
     apiKeyEnv,
-    endpoint: config.endpoint ?? MICROSOFT_WEBIQ_DEFAULT_ENDPOINT,
+    endpoint: config.endpoint,
     ...config.language === undefined ? {} : { language: config.language },
     ...config.region === undefined ? {} : { region: config.region },
-    maxLength: config.maxLength ?? MICROSOFT_WEBIQ_DEFAULT_MAX_LENGTH,
-    safeSearch: config.safeSearch ?? MICROSOFT_WEBIQ_DEFAULT_SAFE_SEARCH,
+    maxLength: config.maxLength,
+    safeSearch: config.safeSearch,
+  }
+}
+
+/** Read one stable configuration snapshot for the next search. */
+function currentConfig(config: Config): ResolvedConfig {
+  const apiKey = config.apiKey.get()
+  const language = config.language.get()
+  const region = config.region.get()
+  return {
+    ...apiKey === undefined ? {} : { apiKey },
+    apiKeyEnv: config.apiKeyEnv.get(),
+    endpoint: config.endpoint.get(),
+    ...language === undefined ? {} : { language },
+    ...region === undefined ? {} : { region },
+    maxLength: config.maxLength.get(),
+    safeSearch: config.safeSearch.get(),
   }
 }
 
@@ -134,23 +160,8 @@ function resolveOptions(
  * @param config - composition entry layered by optional Settings state.
  */
 export function apply(ctx: Context, config: Config): void {
-  validateConfig(config)
-  let current: () => Config = () => config
-  installSettingsSection(
-    ctx,
-    WEB_SEARCH_MICROSOFT_WEBIQ_SETTINGS_NAMESPACE,
-    Config,
-    config,
-    {
-      setSource: (source) => {
-        current = source
-      },
-      // The options thunk reads committed settings at the next operation entry.
-      onChange: () => {},
-      validate: validateConfig,
-    },
-  )
+  validateConfig(currentConfig(config))
   ctx.web.registerSearchProvider(
-    new MicrosoftWebIqSearchProvider(() => resolveOptions(ctx, current())),
+    new MicrosoftWebIqSearchProvider(() => resolveOptions(ctx, currentConfig(config))),
   )
 }

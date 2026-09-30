@@ -36,27 +36,25 @@ A reference supplied by the live process environment is reported `writable: fals
 
 ## Settings
 
-The namespace is validated as lowercase kebab-case at construction. Resolution layers in one order: **schema defaults, then the composition `base`, then the user layer**.
+Live plugin fields use Cordis `Volatile<T>` references. Each field schema calls `.volatile()`, and an operation reads `.get()` once when it starts so a saved edit affects the next operation without replacing the plugin instance or changing an in-flight operation's captured values. This is the current `docs/cookbook/adding-a-settings-card.md` contract and the shape used by `packages/web/web-search-deepseek`.
 
-`update` merges a sparse patch into the user section only and never into `base`; `replace` sets the section wholesale and is the reset path, since keys absent from the replacement re-inherit `base` and the schema defaults. Resolved values are deep-frozen snapshots and writes to one namespace are serialised in call order.
+The Host projects volatile Config into profile-backed forms. The browser reaches those forms through `ctx.configForms.get(namespace)`, and `whileServed([namespace], register)` keeps the UI present exactly while the Host serves that plugin entry.
 
-**`validate` refuses the write that produced the value.** It runs after the schema admits the value, so it sees defaults and base as the owner will. A stored section that already fails rejects the registration itself; one that starts failing later keeps the last good value and warns. Passing the same `validateConfig` to both the load-time check and the settings hook is the intended shape, not duplication.
+Resolution layers remain **schema defaults, then the composition base, then the profile user layer**. Browser writes use revision-fenced `mutate` path operations against the form; clearing a path re-inherits the composition or schema value.
 
-**Secrets never cross a wire surface.** `describe({ redactSecrets: true })` is "mandatory on every wire surface" and strips `role('secret')` fields from all three layers, enumerating their slots so a page can render write-only inputs. The consequence for any configuration UI is mechanical: a holder of a redacted document must write through `mutate` with path ops, because "a wholesale `replace` rebuilt from a redacted document silently deletes every secret the wire never returned".
+**Secrets never cross a read surface.** `role('secret')` keeps the literal out of form responses. The card starts its password draft blank, writes through `ctx.remote.credentials.set(ref, value)`, and re-reads only `configured` and `writable`; a wholesale settings replacement would be both unnecessary and unsafe.
 
-`installSettingsSection` — the helper this package builds on — is not covered by the subsystem page; its contract lives in `packages/settings/settings/src/index.ts`. It registers the composition entry as the `base` layer while a settings service exists and falls back to the entry when the service goes away, so the plugin keeps working exactly as composed.
+Cross-field or stricter constraints that the serialized schema cannot express are checked from the resolved snapshot at plugin load and again when a search captures its options. A rejected live edit therefore cannot turn into a credentialed request with invalid endpoint or parameter values.
 
-## The invariant companion
+## Runtime invariants
 
-A companion installs a real check "only when its package owns an observable event or mutable-data relationship; otherwise it exports an empty installer whose leading comment starts `No runtime invariant:` and explains, package-specifically, why nothing is checkable".
+Current package rules say: **publish `./invariant` only for a relationship whose independent observations can diverge**. Empty installers, service-presence checks, plugin metadata checks, effects, and fixed examples are invalid.
 
-That is two obligations, not one: the literal comment prefix, and a justification specific to this package. A check, if one is ever added, may assert "authoritative event streams or mutable data, never service or method presence" — and must be synchronous when it observes `settings/updated` or `credentials/updated`, because the rethrow reaches the emitter only from synchronous listeners.
-
-Registration reserves the **exact npm package name**; a duplicate, blank, or whitespace-containing name throws.
+This package owns no such independently observable relationship. It therefore publishes no companion; adding an empty one to satisfy an old package checklist would now be a conformance failure.
 
 ## The browser half
 
-`dsh.client` declares exactly three keys — `platform: 'web'`, optional `inject`, optional `immediately` — and the declaration "requires a `./client` export (the scan throws without one)". `external` is *not* declarable here; it is host-derived, and it is the one that constrains code arrival "because `require` is synchronous". `inject` is informational only: it drives preflight display and HMR diffing, and never sequences activation, which is decided by Cordis service injection alone.
+`dsh.client` requires `platform: 'web'` and a `./client` export. `inject` lists package-level informational dependencies used for preflight display and HMR diffing; Cordis service `inject` still controls activation. `external` exists for exceptional non-baseline module-table requests, but feature plugins must not use it as a dependency mechanism.
 
 The row id is the package name, and the bundle is served from `/plugins/<id>/client.js`. An unbuilt bundle answers "a loud 404 rather than letting the carrier's SPA fallback ship HTML as JavaScript" — which is the mechanical reason this repository commits `lib/`.
 
@@ -64,7 +62,11 @@ Without `immediately`, the row is lazy and "fetched on first import" rather than
 
 The CJS-closure loader format that `tsdown.config.ts` reproduces has **no binding statement in the subsystem pages**; its only sources are `packages/client/modules/README.md` and the shared preset `packages/client/tsdown.client.ts`, neither of which is a published package. Treat it as an unversioned coupling and compare against the wrapper header in `lib/client.js` after any harness upgrade.
 
-For anything touching slots, props, or stores, `packages/client/AGENTS.md` is authoritative — notably that a UI plugin composes only through `ctx.slots.register`, that components never see `ctx`, and that the `/client` entrypoint is a public API rather than a convenience barrel.
+For anything touching slots, props, or stores, `packages/client/AGENTS.md` is authoritative — notably that a UI plugin composes only through `ctx.slots.register`, that components never see `ctx`, stores come from `@deepseek-ai/dsh-client-store`, and the `/client` entrypoint exports only loader needs plus public types.
+
+The Plugins page owns the `plugins.item` slot. A card renders `props.view === 'summary'` as one line and `props.view === 'form'` as its controls; the old `settings.plugin.item` slot and `settingsScope` service are no longer current.
+
+The shared module baseline is now `PLATFORM_MODULES`: React, Cordis, `dsh-client-store`, `ui-slots`, `ui-primitives`, and `ui-dockkit`. The standalone build must externalize exactly the baseline identities it imports and inline other browser implementation code.
 
 ## Package and README obligations
 
@@ -78,6 +80,8 @@ Naming follows the role that exists: a `Provider` supplies one implementation an
 
 The published payload stays closed — every relative runtime import and emitted asset must be covered by `files` — and `src`, declaration maps, and JS maps are not published.
 
+An installable plugin may ship `locale/en.json` plus matching language files and export `./locale/*.json`. The Plugin Manager and Settings can then show localized `meta.title` and `meta.description` without activating the plugin; `package.json` remains the fallback.
+
 ## What does not bind this package
 
 These are workspace rules enforced by harness scripts over `packages/**`, and adopting them here would be wrong rather than merely unnecessary.
@@ -88,8 +92,7 @@ These are workspace rules enforced by harness scripts over `packages/**`, and ad
 | Cordis in both `peerDependencies` and `devDependencies`, every dsh peer mirrored into dev | enforced by `check-workspace-constraints` over the workspace; the deliberate optional-peer model here is incompatible on purpose |
 | `packages/<group>/<pkg>` placement and root-config registration (`tsconfig.*.json`, `knip.json`) | harness repository layout |
 | `tsconfig.base.client.json` and the shared `tsdown.client.ts` preset | not resolvable out-of-tree; reproducing the behaviour locally is the only option |
-| `pnpm run constraints / doc-sync / typecheck / lint / build`, `verify-package-invariants`, `verify-package-readme-limitations`, `verify-client-packages`, `verify-translation-pairing` | workspace scripts that never reach this package — the substance still describes what correct means, but nothing enforces it here |
-| "Every workspace package owns a `./invariant` companion" | scoped to workspace packages; the companion here is voluntary and `register()` accepts any npm name |
+| `pnpm run constraints / doc-sync / typecheck / lint / build`, `verify-package-invariants`, `verify-package-meta`, `verify-package-readme-limitations`, `verify-client-packages`, `verify-translation-pairing` | workspace scripts that never reach this package — the substance still describes what correct means, but nothing enforces it here |
 | The whole fetch-side contract (`WebFetchProvider`, `WebFetchBody`, `WEB_INVALID_URL` … `WEB_UNSUPPORTED_CONTENT_TYPE`) | only a search provider is registered |
 
 ## Conformance notes
@@ -99,7 +102,7 @@ No deviation is outstanding. Two shapes look wrong when read against a single pa
 - **`available()` reports usable whenever a resolver is installed.** This matches `web-search-deepseek` line for line; see the provider-contract section above for why the async credential seam leaves no better option.
 - **`Config.apiKey` accepts a literal secret for direct composition.** `web-search-deepseek` carries the same field with the same purpose. It is `role('secret')`, so wire surfaces strip it; a value set through it is still persisted in the settings document, which is why the README records it rather than the code forbidding it.
 
-Two real gaps were fixed rather than recorded: an omitted `maxResults` is now forwarded as omitted instead of defaulting to 10, and `lib/client.js.map` is no longer published — the harness client packages generate that map but keep it out of `files`, and their published payload is exactly `lib/index.js`, `lib/invariant.js`, `lib/client.js`, and `lib/types/**/*.d.ts`.
+Historical gaps were fixed rather than recorded: an omitted `maxResults` is forwarded as omitted instead of defaulting to 10; `lib/client.js.map` is not published; the obsolete settings-section bridge and browser runtime package were replaced by Volatile Config, `configForms`, `plugins.item`, and `dsh-client-store`; and the empty invariant companion was removed.
 
 ## Maintaining this file
 

@@ -1,6 +1,7 @@
 /** Browser-side state controller for Microsoft Web IQ configuration. */
-import type { IApiClient } from '@deepseek-ai/dsh-client-connection/client';
-import { type SettingsScope, type SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client';
+import type { Context as ClientContext } from '@deepseek-ai/cordis';
+import { type SnapshotStore } from '@deepseek-ai/dsh-client-store';
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client';
 /** Provider settings mirrored from `web-search-microsoft-webiq`. */
 export interface MicrosoftWebIqClientSettings {
     /** Credential reference used by the Host provider. */
@@ -64,7 +65,7 @@ export interface MicrosoftWebIqSettingsState {
 export declare class MicrosoftWebIqSettingsController {
     private readonly providerScope;
     private readonly webScope;
-    private readonly api;
+    private readonly remote;
     /** Snapshot source consumed by the card. */
     readonly store: SnapshotStore<MicrosoftWebIqSettingsState>;
     private credential;
@@ -80,7 +81,7 @@ export declare class MicrosoftWebIqSettingsController {
      * @param webScope - shared provider-selection namespace.
      * @param api - credential wire face; key literals cross only this boundary.
      */
-    constructor(providerScope: SettingsScope<MicrosoftWebIqClientSettings>, webScope: SettingsScope<WebRuntimeClientSettings>, api: Pick<IApiClient, 'credentials'>);
+    constructor(providerScope: ConfigForm<MicrosoftWebIqClientSettings>, webScope: ConfigForm<WebRuntimeClientSettings>, remote: Pick<ClientContext['remote'], 'credentials'>);
     /**
      * Re-read credential metadata after an external write notification.
      * @param ref - credential reference reported by the Host.

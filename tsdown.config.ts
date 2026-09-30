@@ -22,8 +22,7 @@ const ID = '@edwindigital/dsh-web-search-microsoft-webiq'
 /**
  * Specifiers the client shell shares through its frozen module table. They
  * must stay external: inlining one would duplicate a runtime identity the
- * shell owns. `dsh-client-runtime/client` carries the snapshot-store engine
- * and is answered by the same table.
+ * shell owns.
  */
 const CLIENT_EXTERNALS = [
   'react',
@@ -31,12 +30,10 @@ const CLIENT_EXTERNALS = [
   'react-dom',
   'react-dom/client',
   '@deepseek-ai/cordis',
+  '@deepseek-ai/dsh-client-store',
   '@deepseek-ai/dsh-client-ui-slots',
-  '@deepseek-ai/dsh-client-web-react',
   '@deepseek-ai/dsh-client-ui-primitives',
-  '@deepseek-ai/dsh-client-ui-attachment',
-  '@deepseek-ai/dsh-client-schema-form',
-  '@deepseek-ai/dsh-client-runtime/client',
+  '@deepseek-ai/dsh-client-ui-dockkit',
 ]
 
 /** Virtual id keeping module CSS out of tsdown's own css pipeline; the suffix must not end in `.css`. */
@@ -55,7 +52,7 @@ function sourceAssetPath(source: string, importer: string): string {
 
 const nodeHalf: UserConfig = {
   name: ID,
-  entry: ['lib/types/index.js', 'lib/types/invariant.js'],
+  entry: ['lib/types/index.js'],
   outDir: 'lib',
   format: ['esm'],
   platform: 'node',
@@ -74,7 +71,10 @@ const browserHalf: UserConfig = {
   dts: false,
   sourcemap: true,
   clean: false,
-  external: CLIENT_EXTERNALS,
+  deps: {
+    neverBundle: (id: string) => CLIENT_EXTERNALS.includes(id),
+    alwaysBundle: (id: string) => !CLIENT_EXTERNALS.includes(id),
+  },
   // Node-idiom dependencies inlined into a browser CJS output read these; a
   // CJS artifact carries no import.meta, so the substitutions must happen here.
   define: {
@@ -82,9 +82,6 @@ const browserHalf: UserConfig = {
     'import.meta.env.MODE': JSON.stringify(process.env.NODE_ENV ?? 'production'),
     'import.meta.env': JSON.stringify({ MODE: process.env.NODE_ENV ?? 'production' }),
   },
-  // A require the frozen table cannot answer throws at runtime, so anything
-  // outside the table inlines instead of being auto-externalized.
-  noExternal: (id: string) => (CLIENT_EXTERNALS.includes(id) ? undefined : true),
   plugins: [{
     name: 'dsh-css-modules-inline',
     resolveId(source: string, importer: string | undefined) {

@@ -7,7 +7,7 @@
 
 由 [Microsoft Web IQ](https://webiq.microsoft.ai/) 支持的 `WebSearchProvider`，用于 harness [web 能力](https://github.com/deepseek-ai/deepseek-harness)（`ctx.web`）。本包调用 Web Search v3 REST 端点，把与查询相关的段落映射为 `@deepseek-ai/dsh-tool-web` 消费的、与提供方无关的 `WebSearchResult`。
 
-这是一个双半插件包。Host 半注册提供方 `microsoft-webiq`；浏览器半向插件设置页贡献一张包内卡片。它不注册 `webiq_search` 或任何其他面向模型的工具，智能体调用的仍是唯一的 `web_search` 工具。
+这是一个双半插件包。Host 半注册提供方 `microsoft-webiq`；浏览器半向插件页贡献一个包内条目。它不注册 `webiq_search` 或任何其他面向模型的工具，智能体调用的仍是唯一的 `web_search` 工具。
 
 安装本包不会静默替换既有搜索提供方。在用户打开卡片中的 **使用 Web IQ 进行网页搜索** 开关、或显式写入 `web.searchProvider: microsoft-webiq` 之前，`web` seam 保持选中 `deepseek-official`。
 
@@ -144,7 +144,7 @@ web:
 | `maxLength` | `5000` | 每条结果的最大段落字符数；正整数，最大 `500000`。 |
 | `safeSearch` | `strict` | `strict` 或 `off`。设为 `off` 时 Web IQ 仍会拦截违法内容。 |
 
-Host 拥有设置命名空间 `web-search-microsoft-webiq`；提供方选择独立存放于命名空间 `web`。卡片顶部是一个开关，为 `web_search` 选中 Web IQ；关闭后清除用户覆盖，使组合中的提供方重新生效。其下，一个 API 配置组持有接口地址与 API Key，一个搜索参数组持有语言、地区、段落长度与安全搜索，底部单一命令同时向两个归属方提交：密钥走凭据 RPC，其余进入设置命名空间。凭据引用仍是在 `cordis.yml` 中做出的部署选择，因此没有任何配置界面向用户索要环境变量名。每个归属方在写入后都会回读，因此被拒绝的操作会被如实报告，而不是呈现为已接受。
+Host 把插件条目 `web-search-microsoft-webiq` 暴露为由 profile 持久化的实时 Config 表单；提供方选择独立存放于 `web` 条目。每个可编辑字段都是 volatile，因此下一次搜索无需替换插件实例即可读取已保存的值，而正在运行的搜索保持其启动时的快照。插件页表单顶部是一个开关，为 `web_search` 选中 Web IQ；关闭后清除用户覆盖，使组合中的提供方重新生效。其下，一个 API 配置组持有接口地址与 API Key，一个搜索参数组持有语言、地区、段落长度与安全搜索，底部单一命令同时向两个归属方提交：密钥走凭据 RPC，其余使用带 revision 防护的 profile mutation。凭据引用仍是在 `cordis.yml` 中做出的部署选择，因此没有任何配置界面向用户索要环境变量名。每个归属方在写入后都会回读，因此被拒绝的操作会被如实报告，而不是呈现为已接受。
 
 ## REST 契约与映射
 
@@ -238,7 +238,7 @@ content-type: application/json
 
 ## 开发
 
-`npm run build` 执行 `tsc -b` 生成声明，并用 `tsdown` 打包两个半。仅跟踪 manifest 发布的内容：`lib/index.js`、`lib/invariant.js`、`lib/client.js` 及其 map，以及 `lib/types/**/*.d.ts`。
+`npm run build` 执行 `tsc -b` 生成声明，并用 `tsdown` 打包两个半。仅跟踪 manifest 发布的内容：`lib/index.js`、`lib/client.js`、`locale/*.json` 与 `lib/types/**/*.d.ts`；source map 不进入发布包。
 
 提交产物免去了安装期构建，同时把一项义务转嫁到每次改动上：**任何 `src/` 修改都必须在同一提交中重新构建并提交 `lib/`。** 没有任何机制强制这一点，而过期产物是静默的——安装方会继续解析到旧代码，任何层级都不会给出警告。构建后执行 `git status` 即是检查手段，之所以可行，是因为构建具有确定性：对未改动源码的重复构建产生逐字节一致的输出，因此任何 diff 都是真实改动。
 

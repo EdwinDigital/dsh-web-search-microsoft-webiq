@@ -1,30 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context, type Fiber } from '@deepseek-ai/cordis'
-import { SettingsProvider, type SettingsNamespace } from '@deepseek-ai/dsh-settings'
+import { createVolatile, updateVolatile } from '@deepseek-ai/cosmokit'
 import WebRuntime from '@deepseek-ai/dsh-web'
 import * as webIqPlugin from '../src/index.ts'
-import {
-  MICROSOFT_WEBIQ_PROVIDER_ID,
-  WEB_SEARCH_MICROSOFT_WEBIQ_SETTINGS_NAMESPACE,
-} from '../src/index.ts'
-
-/** Writable in-memory settings provider for plugin lifecycle tests. */
-class MemorySettings extends SettingsProvider {
-  private contents: Record<string, unknown> = {}
-
-  get writable(): boolean {
-    return true
-  }
-
-  protected load(): Promise<Record<string, unknown>> {
-    return Promise.resolve(structuredClone(this.contents))
-  }
-
-  protected persist(ns: SettingsNamespace, section: Record<string, unknown>): Promise<void> {
-    this.contents = { ...this.contents, [ns]: structuredClone(section) }
-    return Promise.resolve()
-  }
-}
+import { MICROSOFT_WEBIQ_PROVIDER_ID } from '../src/index.ts'
 
 const WEB_RESPONSE = {
   webResults: [{ title: 'A', url: 'https://a.test', content: 'Passage A' }],
@@ -37,17 +16,19 @@ function jsonResponse(body: unknown): Response {
   })
 }
 
-async function boot(): Promise<{ ctx: Context; settingsFiber: Fiber; pluginFiber: Fiber }> {
+async function boot(config: Record<string, unknown> = {}): Promise<{
+  ctx: Context
+  pluginFiber: Fiber
+}> {
   const ctx = new Context()
   await ctx.plugin(WebRuntime, { searchProvider: MICROSOFT_WEBIQ_PROVIDER_ID }).await()
-  const settingsFiber = ctx.plugin(MemorySettings)
-  await settingsFiber.await()
   const pluginFiber = ctx.plugin(webIqPlugin, {
     apiKey: 'entry-key',
     endpoint: 'https://entry.test/search',
+    ...config,
   })
   await pluginFiber.await()
-  return { ctx, settingsFiber, pluginFiber }
+  return { ctx, pluginFiber }
 }
 
 async function searchOnce(ctx: Context): Promise<{ url: string; init: RequestInit }> {
@@ -62,60 +43,21 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('web-search-microsoft-webiq settings', () => {
-  it('uses a committed endpoint on the next search without re-registering', async () => {
+describe('web-search-microsoft-webiq live configuration', () => {
+  it('uses a volatile endpoint change on the next search without re-registering', async () => {
     const bench = await boot()
     expect((await searchOnce(bench.ctx)).url).toBe('https://entry.test/search')
 
-    await bench.ctx.settings.update(WEB_SEARCH_MICROSOFT_WEBIQ_SETTINGS_NAMESPACE, {
-      endpoint: 'https://stored.test/search',
-    })
+    updateVolatile(
+      (bench.pluginFiber.config as webIqPlugin.Config).endpoint,
+      createVolatile('https://stored.test/search'),
+    )
 
     expect((await searchOnce(bench.ctx)).url).toBe('https://stored.test/search')
     await bench.ctx.fiber.dispose()
   })
 
-  it('keeps a literal API key out of redacted descriptors', async () => {
-    const bench = await boot()
-    await bench.ctx.settings.update(WEB_SEARCH_MICROSOFT_WEBIQ_SETTINGS_NAMESPACE, {
-      apiKey: 'stored-webiq-secret',
-    })
-
-    const descriptor = bench.ctx.settings.describe({ redactSecrets: true })
-      .find(row => String(row.ns) === 'web-search-microsoft-webiq')
-    expect(JSON.stringify(descriptor)).not.toContain('stored-webiq-secret')
-    expect(descriptor?.secrets).toEqual([{ path: ['apiKey'], set: true }])
-    await bench.ctx.fiber.dispose()
-  })
-
-  it('restores the composition endpoint when Settings detaches', async () => {
-    const bench = await boot()
-    await bench.ctx.settings.update(WEB_SEARCH_MICROSOFT_WEBIQ_SETTINGS_NAMESPACE, {
-      endpoint: 'https://stored.test/search',
-    })
-    expect((await searchOnce(bench.ctx)).url).toBe('https://stored.test/search')
-
-    await bench.settingsFiber.dispose()
-
-    expect((await searchOnce(bench.ctx)).url).toBe('https://entry.test/search')
-    await bench.ctx.fiber.dispose()
-  })
-
-  it('releases the provider and settings namespace when unloaded', async () => {
-    const bench = await boot()
-    expect(bench.ctx.settings.describe().map(row => String(row.ns)))
-      .toContain('web-search-microsoft-webiq')
-
-    await bench.pluginFiber.dispose()
-
-    expect(bench.ctx.settings.describe().map(row => String(row.ns)))
-      .not.toContain('web-search-microsoft-webiq')
-    await expect(bench.ctx.web.search({ query: 'q' }))
-      .rejects.toThrow(expect.objectContaining({ code: 'WEB_PROVIDER_CONFIGURED_MISSING' }))
-    await bench.ctx.fiber.dispose()
-  })
-
-  it('uses MICROSOFT_WEBIQ_API_KEY from the launch environment when no stored key exists', async () => {
+  it('uses MICROSOFT_WEBIQ_API_KEY from the launch environment when no literal key exists', async () => {
     const previous = process.env.MICROSOFT_WEBIQ_API_KEY
     process.env.MICROSOFT_WEBIQ_API_KEY = 'environment-key'
     const ctx = new Context()
@@ -146,14 +88,12 @@ describe('web-search-microsoft-webiq settings', () => {
     await ctx.fiber.dispose()
   })
 
-  it('rejects out-of-range maxLength in settings updates', async () => {
+  it('releases the provider when unloaded', async () => {
     const bench = await boot()
-    await expect(bench.ctx.settings.update(WEB_SEARCH_MICROSOFT_WEBIQ_SETTINGS_NAMESPACE, {
-      maxLength: 500001,
-    })).rejects.toThrow(/maxLength/u)
-    await expect(bench.ctx.settings.update(WEB_SEARCH_MICROSOFT_WEBIQ_SETTINGS_NAMESPACE, {
-      endpoint: 'https://[',
-    })).rejects.toThrow(/endpoint/u)
+    await bench.pluginFiber.dispose()
+
+    await expect(bench.ctx.web.search({ query: 'q' }))
+      .rejects.toThrow(expect.objectContaining({ code: 'WEB_PROVIDER_CONFIGURED_MISSING' }))
     await bench.ctx.fiber.dispose()
   })
 })

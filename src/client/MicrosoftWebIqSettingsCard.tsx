@@ -1,10 +1,9 @@
 /** Package-local browser card for Microsoft Web IQ configuration. */
 
 import { useEffect, useState } from 'react'
-import { IconChevronDownOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type {} from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
-import type { SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type {
   MicrosoftWebIqClientSettings,
   MicrosoftWebIqSettingsPatch,
@@ -26,9 +25,9 @@ export interface MicrosoftWebIqSettingsCardFace {
   readonly saveSettings: (patch: MicrosoftWebIqSettingsPatch) => Promise<boolean>
 }
 
-/** Props bound by the `settings.plugin.item` renderer. */
+/** Props bound by the `plugins.item` renderer. */
 export type MicrosoftWebIqSettingsCardProps =
-  PropsRuntime<'settings.plugin.item'>
+  PropsRuntime<'plugins.item'>
   & PropsLocale<'web-search.microsoft-webiq'>
   & InjectFace<MicrosoftWebIqSettingsCardFace>
 
@@ -48,7 +47,6 @@ interface SettingsDraft {
 export function MicrosoftWebIqSettingsCard(props: MicrosoftWebIqSettingsCardProps) {
   const { t } = props
   const state = props.useMicrosoftWebIqSettings(value => value)
-  const [open, setOpen] = useState(false)
   const [apiKey, setApiKey] = useState('')
   const [keyRejected, setKeyRejected] = useState(false)
   const [draft, setDraft] = useState<SettingsDraft>(() => draftOf(state.settings))
@@ -58,6 +56,7 @@ export function MicrosoftWebIqSettingsCard(props: MicrosoftWebIqSettingsCardProp
     setDraft(draftOf(state.settings))
   }, [state.failedAction, state.savingSettings, state.settings])
 
+  if (props.view === 'summary') return t('description')
   if (!state.available) return null
   const validity = validateDraft(draft)
   const settingsDirty = !sameSettings(draft, state.settings)
@@ -82,23 +81,7 @@ export function MicrosoftWebIqSettingsCard(props: MicrosoftWebIqSettingsCardProp
   }
 
   return (
-    <li className={css.card}>
-      <button
-        type="button"
-        className={css.header}
-        aria-expanded={open}
-        aria-label={`${t(open ? 'collapse' : 'expand')}: ${t('title')}`}
-        onClick={() => { setOpen(!open) }}
-      >
-        <span className={css.headText}>
-          <span className={css.title}>{t('title')}</span>
-          <span className={css.description}>{t('description')}</span>
-        </span>
-        <IconChevronDownOutline14 className={`${css.chevron} ${open ? css.chevronOpen : ''}`} />
-      </button>
-      {open
-        ? (
-          <div className={css.body}>
+    <div className={css.body}>
             <div className={css.actionRow}>
               <div className={css.actionText}>
                 <span className={css.label}>{t('useAsDefault')}</span>
@@ -225,10 +208,7 @@ export function MicrosoftWebIqSettingsCard(props: MicrosoftWebIqSettingsCardProp
                 </button>
               </div>
             </div>
-          </div>
-        )
-        : null}
-    </li>
+    </div>
   )
 }
 

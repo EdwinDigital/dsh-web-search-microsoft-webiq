@@ -2,7 +2,7 @@
 
 /** Locale keys rendered by this package's browser half. */
 export type MicrosoftWebIqLocaleKey =
-  | 'title' | 'description' | 'expand' | 'collapse'
+  | 'title' | 'description'
   | 'apiKey' | 'apiKeyHint' | 'apiKeySet' | 'apiKeyUnset' | 'apiKeyLocked'
   | 'apiKeyFailed' | 'apiSection' | 'parameterSection'
   | 'endpoint' | 'language' | 'region' | 'maxLength'
@@ -21,8 +21,6 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 export const en: Record<MicrosoftWebIqLocaleKey, string> = {
   title: 'Microsoft Web IQ',
   description: 'Web grounding through Microsoft Web IQ.',
-  expand: 'Show settings',
-  collapse: 'Hide settings',
   apiKey: 'API key',
   apiKeyHint: 'Stored through the credential service. Leave blank to keep the current key.',
   apiKeySet: 'A key is configured.',
@@ -53,8 +51,6 @@ export const en: Record<MicrosoftWebIqLocaleKey, string> = {
 export const zh: Record<MicrosoftWebIqLocaleKey, string> = {
   title: 'Microsoft Web IQ',
   description: '通过 Microsoft Web IQ 提供网页检索依据。',
-  expand: '展开设置',
-  collapse: '收起设置',
   apiKey: 'API Key',
   apiKeyHint: '通过凭据服务存储；留空表示保留当前密钥。',
   apiKeySet: '已配置密钥。',

@@ -1,6 +1,6 @@
 /** Package-local browser card for Microsoft Web IQ configuration. */
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
-import type { SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client';
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store';
 import type { MicrosoftWebIqSettingsPatch, MicrosoftWebIqSettingsState } from './controller.ts';
 /** Injection face supplied by this package's slot registration. */
 export interface MicrosoftWebIqSettingsCardFace {
@@ -15,12 +15,12 @@ export interface MicrosoftWebIqSettingsCardFace {
     /** Store non-secret provider settings. */
     readonly saveSettings: (patch: MicrosoftWebIqSettingsPatch) => Promise<boolean>;
 }
-/** Props bound by the `settings.plugin.item` renderer. */
-export type MicrosoftWebIqSettingsCardProps = PropsRuntime<'settings.plugin.item'> & PropsLocale<'web-search.microsoft-webiq'> & InjectFace<MicrosoftWebIqSettingsCardFace>;
+/** Props bound by the `plugins.item` renderer. */
+export type MicrosoftWebIqSettingsCardProps = PropsRuntime<'plugins.item'> & PropsLocale<'web-search.microsoft-webiq'> & InjectFace<MicrosoftWebIqSettingsCardFace>;
 /**
  * Render the provider's package-local settings card.
  * @param props - slot-composed translations, card state, and controller commands.
  * @returns the card element mounted into the Plugins settings slot.
  */
-export declare function MicrosoftWebIqSettingsCard(props: MicrosoftWebIqSettingsCardProps): import("react").JSX.Element | null;
+export declare function MicrosoftWebIqSettingsCard(props: MicrosoftWebIqSettingsCardProps): string | import("react").JSX.Element | null;
 //# sourceMappingURL=MicrosoftWebIqSettingsCard.d.ts.map

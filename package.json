@@ -22,22 +22,19 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
-    "./invariant": {
-      "types": "./lib/types/invariant.d.ts",
-      "default": "./lib/invariant.js"
-    },
     "./client": {
       "types": "./lib/types/client/index.d.ts",
       "default": "./lib/client.js"
     },
     "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json",
     "./package.json": "./package.json"
   },
   "files": [
     "lib/index.js",
-    "lib/invariant.js",
     "lib/client.js",
     "cordis.patch.yml",
+    "locale/*.json",
     "lib/types/**/*.d.ts"
   ],
   "dsh": {
@@ -46,10 +43,9 @@
     },
     "client": {
       "inject": [
-        "@deepseek-ai/dsh-client-connection",
         "@deepseek-ai/dsh-client-locale",
-        "@deepseek-ai/dsh-client-runtime",
         "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-plugin-manager",
         "@deepseek-ai/dsh-api-remotes"
       ],
       "platform": "web"
@@ -62,18 +58,15 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": "*",
     "@deepseek-ai/dsh-api-remotes": "*",
-    "@deepseek-ai/dsh-client-connection": "*",
     "@deepseek-ai/dsh-client-locale": "*",
-    "@deepseek-ai/dsh-client-runtime": "*",
+    "@deepseek-ai/dsh-client-store": "*",
+    "@deepseek-ai/dsh-client-ui-plugin-manager": "*",
     "@deepseek-ai/dsh-client-ui-primitives": "*",
+    "@deepseek-ai/dsh-client-ui-renderer": "*",
     "@deepseek-ai/dsh-client-ui-settings": "*",
-    "@deepseek-ai/dsh-client-ui-settings-plugins": "*",
     "@deepseek-ai/dsh-client-ui-slots": "*",
-    "@deepseek-ai/dsh-client-web-react": "*",
     "@deepseek-ai/dsh-credentials": "*",
-    "@deepseek-ai/dsh-invariants": "*",
     "@deepseek-ai/dsh-launch-environment": "*",
-    "@deepseek-ai/dsh-settings": "*",
     "@deepseek-ai/dsh-web": "*",
     "@deepseek-ai/schemastery": "*",
     "react": "^18.2.0"
@@ -81,18 +74,15 @@
   "peerDependenciesMeta": {
     "@deepseek-ai/cordis": { "optional": true },
     "@deepseek-ai/dsh-api-remotes": { "optional": true },
-    "@deepseek-ai/dsh-client-connection": { "optional": true },
     "@deepseek-ai/dsh-client-locale": { "optional": true },
-    "@deepseek-ai/dsh-client-runtime": { "optional": true },
+    "@deepseek-ai/dsh-client-store": { "optional": true },
+    "@deepseek-ai/dsh-client-ui-plugin-manager": { "optional": true },
     "@deepseek-ai/dsh-client-ui-primitives": { "optional": true },
+    "@deepseek-ai/dsh-client-ui-renderer": { "optional": true },
     "@deepseek-ai/dsh-client-ui-settings": { "optional": true },
-    "@deepseek-ai/dsh-client-ui-settings-plugins": { "optional": true },
     "@deepseek-ai/dsh-client-ui-slots": { "optional": true },
-    "@deepseek-ai/dsh-client-web-react": { "optional": true },
     "@deepseek-ai/dsh-credentials": { "optional": true },
-    "@deepseek-ai/dsh-invariants": { "optional": true },
     "@deepseek-ai/dsh-launch-environment": { "optional": true },
-    "@deepseek-ai/dsh-settings": { "optional": true },
     "@deepseek-ai/dsh-web": { "optional": true },
     "@deepseek-ai/schemastery": { "optional": true },
     "react": { "optional": true }
