@@ -17,6 +17,7 @@ src/            plugin source; the Host half (index/provider) and the browser ha
   types.ts      types only — no runtime code
   client/       browser bundle-config page, its controller, locales, and CSS Modules
 locale/         package display metadata discovered without activating the plugin
+icon.svg        manifest artwork shown by Plugin Manager and Settings
 lib/            committed build artifact — see "The committed artifact"
 tests/          vitest specs at package level, never src/__tests__/
 docs/           plugin-conventions.md, the harness contracts this package owes
@@ -69,7 +70,7 @@ Prose is current-state, one physical line per paragraph, one home per fact. Stat
 
 ## Distribution
 
-`package.json` declares `dsh.bundle.patch`, which is what makes `dsh plugin --profile <name> add <spec>` append `cordis.patch.yml` after the shipped profile bundles. The patch inserts this package's own entry and nothing else: it composes no other package, because a patch row naming a package the profile cannot resolve fails the whole load, and a `serverName`-style global claim would fail somebody else's composition instead of ours.
+`package.json` declares `dsh.bundle.patch`, which makes the installed bundle layer apply `cordis.patch.yml` after the shipped profile bundles. The patch inserts this package's own entry and selects `microsoft-webiq` in the existing `web` entry so a first installation works without a second enablement step; because that bundle layer remains present, the settings switch restores `deepseek-official` by writing an explicit profile user override rather than by unsetting the field. It composes no other package, because a patch row naming a package the profile cannot resolve fails the whole load.
 
 The marketplace entry lives in the `awesome-dsh-plugin` repository under `data/plugins/`, with screenshots keyed by repository URL in `data/screenshots.json`. Both READMEs there are generated — never hand-edit them, and change only this package's own entry.
 

@@ -42,7 +42,7 @@ export const en: Record<MicrosoftWebIqLocaleKey, string> = {
   readOnly: 'This deployment stores provider settings read-only.',
   settingsFailed: 'The provider settings were not accepted.',
   useAsDefault: 'Use Web IQ for web search',
-  useAsDefaultHint: 'Turned off, web_search keeps the deployment default provider.',
+  useAsDefaultHint: 'Turned off, web_search uses the shipped DeepSeek provider.',
   settingDefault: 'Applying...',
   defaultFailed: 'The default search provider was not changed.',
 }
@@ -72,7 +72,7 @@ export const zh: Record<MicrosoftWebIqLocaleKey, string> = {
   readOnly: '本部署的提供方设置为只读。',
   settingsFailed: '提供方设置未被接受。',
   useAsDefault: '使用 Web IQ 进行网页搜索',
-  useAsDefaultHint: '关闭后，web_search 仍使用本部署的默认提供方。',
+  useAsDefaultHint: '关闭后，web_search 使用出厂配置的 DeepSeek 提供方。',
   settingDefault: '正在应用...',
   defaultFailed: '默认搜索提供方未更改。',
 }

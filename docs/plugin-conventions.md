@@ -42,6 +42,8 @@ The Host projects volatile Config into profile-backed forms. The browser reaches
 
 Resolution layers remain **schema defaults, then the composition base, then the profile user layer**. Browser writes use revision-fenced `mutate` path operations against the form; clearing a path re-inherits the composition or schema value.
 
+An installed bundle patch may override a shared setting after the shipped bundle layers. This package selects `web.searchProvider: microsoft-webiq` there so a first installation is active immediately. Because that layer remains while the bundle is installed, disabling Web IQ through the card writes `deepseek-official` into the higher-priority profile user layer; merely unsetting the field would expose the bundle layer and select Web IQ again.
+
 **Secrets never cross a read surface.** `role('secret')` keeps the literal out of form responses. The card starts its password draft blank, writes through `ctx.remote.credentials.set(ref, value)`, and re-reads only `configured` and `writable`; a wholesale settings replacement would be both unnecessary and unsafe.
 
 Cross-field or stricter constraints that the serialized schema cannot express are checked from the resolved snapshot at plugin load and again when a search captures its options. A rejected live edit therefore cannot turn into a credentialed request with invalid endpoint or parameter values.
@@ -81,6 +83,8 @@ Naming follows the role that exists: a `Provider` supplies one implementation an
 The published payload stays closed — every relative runtime import and emitted asset must be covered by `files` — and `src`, declaration maps, and JS maps are not published.
 
 An installable plugin may ship `locale/en.json` plus matching language files and export `./locale/*.json`. The Plugin Manager and Settings can then show localized `meta.title` and `meta.description` without activating the plugin; `package.json` remains the fallback.
+
+Plugin artwork is package metadata, not browser code. A top-level manifest `"icon": "./icon.svg"` points to a self-contained SVG, PNG, JPEG, or WebP file inside the manifest directory, at most 256 KiB; the file belongs in `files` but needs no export. The Host reads it into a data URL without activating the plugin, and Plugin Manager bundle cards, details, component rows, configuration details, and Settings inventory all consume it. URLs, absolute paths, files outside the package, and symlinks escaping the package are rejected.
 
 ## What does not bind this package
 

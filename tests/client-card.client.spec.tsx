@@ -102,6 +102,7 @@ describe('MicrosoftWebIqSettingsCard', () => {
     const bench = mount()
     const toggle = screen.getByRole('switch', { name: en.useAsDefault })
     expect(toggle.getAttribute('aria-checked')).toBe('false')
+    expect(toggle.children).toHaveLength(1)
 
     fireEvent.click(toggle)
     await waitFor(() => { expect(bench.setDefault).toHaveBeenCalledWith(true) })

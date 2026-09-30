@@ -9,14 +9,14 @@ A [Microsoft Web IQ](https://webiq.microsoft.ai/)-backed `WebSearchProvider` for
 
 This is one dual-half plugin package. Its Host half registers provider `microsoft-webiq`; its browser half contributes a package-local item to the Plugins page. It does not register `webiq_search` or any other model-facing tool. Agent calls continue to use the single `web_search` tool.
 
-Installing the package does not silently replace an existing search provider. The `web` seam keeps `deepseek-official` selected until the user turns on **Use Web IQ for web search** in the card or stores `web.searchProvider: microsoft-webiq` explicitly.
+The install patch selects Web IQ for `web_search` immediately. Turning off **Use Web IQ for web search** writes the Web profile's shipped `deepseek-official` provider into the profile user layer.
 
 ## About Microsoft Web IQ
 
 Microsoft describes Web IQ as a suite of AI-native APIs that give applications access to fresh, real-world intelligence from across the web — web pages, news, images, and videos. This package consumes one of them, the Web Search v3 endpoint.
 
 > [!IMPORTANT]
-> **Web IQ is in limited access for select Azure customers**, so a key is not self-service. Request one through the [waitlist](https://aka.ms/webiq-access) before installing. Without a resolvable key the provider still registers and then fails every search with `WEB_PROVIDER_CREDENTIAL_MISSING`.
+> **Web IQ is in limited access for select Azure customers**, so a key is not self-service. Request one through the [waitlist](https://aka.ms/webiq-access) before installing. Without a resolvable key the selected provider fails with `WEB_PROVIDER_CREDENTIAL_MISSING` and directs the user to **Plugins → Microsoft Web IQ Search → API Key**.
 
 Figures Microsoft publishes for the service, against alternatives it does not name:
 
@@ -41,7 +41,7 @@ flowchart LR
 
 ## Screenshots
 
-The bundle detail page under the main sidebar's **Plugins** entry. **Use Web IQ for web search** is the switch that selects this provider; turned off, `web_search` goes back to the composed default. Below it, one group holds the endpoint and API key and another holds language, region, passage length, and SafeSearch. The line under the masked password field reports only that a key is stored, without exposing the credential.
+The bundle detail page under the main sidebar's **Plugins** entry. **Use Web IQ for web search** is the switch that selects this provider; turned off, `web_search` uses the Web profile's shipped `deepseek-official` provider. Below it, one group holds the endpoint and API key and another holds language, region, passage length, and SafeSearch. The line under the masked password field reports only that a key is stored, without exposing the credential.
 
 ![The Microsoft Web IQ settings card](docs/images/screenshot-1-settings.png)
 
@@ -75,9 +75,12 @@ Either route records the dependency, appends the package to the profile's `dsh.p
 - insert:
     - id: web-search-microsoft-webiq
       name: '@edwindigital/dsh-web-search-microsoft-webiq'
+- id: web
+  config:
+    searchProvider: microsoft-webiq
 ```
 
-The credential reference resolves from the schema default; a deployment states `apiKeyEnv` in the row only to redirect the lookup.
+The second patch row makes Web IQ the first-install search provider. Because the installed bundle layer remains active, turning the card switch off writes `deepseek-official` into the higher-priority profile user layer. The credential reference resolves from the schema default; a deployment states `apiKeyEnv` in the plugin row only to redirect the lookup.
 
 ### Peer dependencies stay unresolved by design
 
@@ -130,7 +133,7 @@ The default credential reference is `MICROSOFT_WEBIQ_API_KEY`. Resolution occurs
 2. The optional `ctx.credentials` service for `apiKeyEnv`.
 3. The launching environment for the same reference.
 
-The browser card writes replacement keys only through the credentials RPC. The password field is always blank after load and after an accepted save. Key literals are marked secret in the Host schema and are omitted from Settings descriptions, browser boot data, logs, and normal configuration reads. A missing key fails the selected provider with `WEB_PROVIDER_CREDENTIAL_MISSING` and names only the unresolved reference. A key inherited from the launch environment is the one layer this process cannot rewrite, so the card disables its password field and says which layer owns the key instead of failing an accepted-looking save.
+The browser card writes replacement keys only through the credentials RPC. The password field is always blank after load and after an accepted save. Key literals are marked secret in the Host schema and are omitted from Settings descriptions, browser boot data, logs, and normal configuration reads. A missing key fails the selected provider with `WEB_PROVIDER_CREDENTIAL_MISSING`, names the unresolved reference, and directs the user to the Web IQ plugin page's API Key field. A key inherited from the launch environment is the one layer this process cannot rewrite, so the card disables its password field and says which layer owns the key instead of failing an accepted-looking save.
 
 ## Config
 
@@ -144,7 +147,7 @@ The browser card writes replacement keys only through the credentials RPC. The p
 | `maxLength` | `5000` | Maximum passage characters per result; positive integer, maximum `500000`. |
 | `safeSearch` | `strict` | `strict` or `off`. Web IQ still blocks illegal content when set to `off`. |
 
-The Host exposes the plugin entry `web-search-microsoft-webiq` as a profile-backed live Config form; provider selection lives separately in the `web` entry. Every editable field is volatile, so the next search reads saved values without replacing the plugin instance, while an in-flight search keeps its starting snapshot. The Plugins-page form starts with a switch that selects Web IQ for `web_search` and, once off, clears the user override so the composed provider applies again. Below it, one API configuration group holds the endpoint and the API key, a search parameter group holds language, region, passage length, and SafeSearch, and a single command at the bottom commits both owners: the key crosses the credentials RPC and the rest uses revision-fenced profile mutations. The credential reference stays a deployment choice made in `cordis.yml`, so no configuration surface asks a user for an environment variable name. Each owner is read back after a write, so a refused operation is reported rather than presented as accepted.
+The Host exposes the plugin entry `web-search-microsoft-webiq` as a profile-backed live Config form; provider selection lives separately in the `web` entry. The installed bundle layer selects Web IQ until a higher-priority profile user setting says otherwise. Every editable field is volatile, so the next search reads saved values without replacing the plugin instance, while an in-flight search keeps its starting snapshot. The Plugins-page form starts with a switch that reflects this selection and, once off, writes `deepseek-official` into the profile user layer. Below it, one API configuration group holds the endpoint and the API key, a search parameter group holds language, region, passage length, and SafeSearch, and a single command at the bottom commits both owners: the key crosses the credentials RPC and the rest uses revision-fenced profile mutations. The credential reference stays a deployment choice made in `cordis.yml`, so no configuration surface asks a user for an environment variable name. Each owner is read back after a write, so a refused operation is reported rather than presented as accepted.
 
 ## REST contract and mapping
 

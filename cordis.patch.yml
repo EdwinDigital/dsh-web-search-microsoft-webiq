@@ -1,7 +1,10 @@
 # Installable Web IQ layer. The package's dsh.bundle declaration makes
-# `dsh plugin --profile web add <package-or-git-spec>` append this patch after
-# the shipped profile bundles. The credential reference resolves from the
-# schema default, so a deployment states it here only to redirect the lookup.
+# `dsh plugin --profile web add <package-or-git-spec>` append this patch to the
+# profile composition. Select Web IQ there on first installation; the settings
+# switch can later write the shipped provider back into the profile user layer.
 - insert:
     - id: web-search-microsoft-webiq
       name: '@edwindigital/dsh-web-search-microsoft-webiq'
+- id: web
+  config:
+    searchProvider: microsoft-webiq

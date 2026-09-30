@@ -9,14 +9,14 @@
 
 这是一个双半插件包。Host 半注册提供方 `microsoft-webiq`；浏览器半向插件页贡献一个包内条目。它不注册 `webiq_search` 或任何其他面向模型的工具，智能体调用的仍是唯一的 `web_search` 工具。
 
-安装本包不会静默替换既有搜索提供方。在用户打开卡片中的 **使用 Web IQ 进行网页搜索** 开关、或显式写入 `web.searchProvider: microsoft-webiq` 之前，`web` seam 保持选中 `deepseek-official`。
+安装补丁会立即为 `web_search` 选中 Web IQ。关闭 **使用 Web IQ 进行网页搜索** 会在 profile 用户层写入 Web profile 出厂使用的 `deepseek-official` 提供方。
 
 ## 关于 Microsoft Web IQ
 
 微软将 Web IQ 描述为一套 AI 原生 API，让应用能够获取来自全网的实时真实信息——网页、新闻、图片与视频。本包消费其中之一：Web Search v3 端点。
 
 > [!IMPORTANT]
-> **Web IQ 面向部分 Azure 客户限量开放**，密钥无法自助获取。请先通过[等待列表](https://aka.ms/webiq-access)申请，再安装本插件。密钥无法解析时，提供方仍会注册，但每次搜索都以 `WEB_PROVIDER_CREDENTIAL_MISSING` 失败。
+> **Web IQ 面向部分 Azure 客户限量开放**，密钥无法自助获取。请先通过[等待列表](https://aka.ms/webiq-access)申请，再安装本插件。密钥无法解析时，选中的提供方会以 `WEB_PROVIDER_CREDENTIAL_MISSING` 失败，并引导用户前往 **插件 → Microsoft Web IQ 搜索 → API Key**。
 
 微软为该服务公布的数据，其对比对象未具名：
 
@@ -41,7 +41,7 @@ flowchart LR
 
 ## 截图
 
-主界面左侧栏**插件**入口下的插件详情页。**使用 Web IQ 进行网页搜索** 是选中本提供方的开关；关闭后 `web_search` 回到组合中的默认提供方。其下一组配置持有接口地址与 API Key，另一组持有语言、地区、段落长度与安全搜索。掩码密码框下方只说明密钥已存储，不会暴露凭据。
+主界面左侧栏**插件**入口下的插件详情页。**使用 Web IQ 进行网页搜索** 是选中本提供方的开关；关闭后 `web_search` 使用 Web profile 出厂配置的 `deepseek-official` 提供方。其下一组配置持有接口地址与 API Key，另一组持有语言、地区、段落长度与安全搜索。掩码密码框下方只说明密钥已存储，不会暴露凭据。
 
 ![Microsoft Web IQ 设置卡片](docs/images/screenshot-1-settings.png)
 
@@ -75,9 +75,12 @@ dsh plugin --profile web add github:EdwinDigital/dsh-web-search-microsoft-webiq
 - insert:
     - id: web-search-microsoft-webiq
       name: '@edwindigital/dsh-web-search-microsoft-webiq'
+- id: web
+  config:
+    searchProvider: microsoft-webiq
 ```
 
-凭据引用由 schema 默认值解析；部署方只在需要改变查找目标时才在该行写出 `apiKeyEnv`。
+第二条补丁让 Web IQ 成为首次安装后的搜索提供方。由于已安装的 bundle 层会持续生效，关闭卡片开关会在优先级更高的 profile 用户层写入 `deepseek-official`。凭据引用由 schema 默认值解析；部署方只在需要改变查找目标时才在插件行写出 `apiKeyEnv`。
 
 ### peer 依赖保持未解析是设计使然
 
@@ -130,7 +133,7 @@ web:
 2. 可选的 `ctx.credentials` 服务，按 `apiKeyEnv` 查找。
 3. 启动环境中的同一引用。
 
-浏览器卡片只通过凭据 RPC 写入替换密钥。密码框在加载后与保存被接受后始终为空。密钥字面量在 Host schema 中标记为 secret，不出现在设置描述、浏览器启动数据、日志与常规配置读取中。密钥缺失会让选中的提供方以 `WEB_PROVIDER_CREDENTIAL_MISSING` 失败，且只指出未解析的引用。来自启动环境的密钥是本进程唯一无法改写的层级，因此卡片会禁用其密码框并说明该密钥归属哪一层，而不是让一次看似被接受的保存失败。
+浏览器卡片只通过凭据 RPC 写入替换密钥。密码框在加载后与保存被接受后始终为空。密钥字面量在 Host schema 中标记为 secret，不出现在设置描述、浏览器启动数据、日志与常规配置读取中。密钥缺失会让选中的提供方以 `WEB_PROVIDER_CREDENTIAL_MISSING` 失败，指出未解析的引用，并引导用户前往 Web IQ 插件页的 API Key 字段。来自启动环境的密钥是本进程唯一无法改写的层级，因此卡片会禁用其密码框并说明该密钥归属哪一层，而不是让一次看似被接受的保存失败。
 
 ## 配置
 
@@ -144,7 +147,7 @@ web:
 | `maxLength` | `5000` | 每条结果的最大段落字符数；正整数，最大 `500000`。 |
 | `safeSearch` | `strict` | `strict` 或 `off`。设为 `off` 时 Web IQ 仍会拦截违法内容。 |
 
-Host 把插件条目 `web-search-microsoft-webiq` 暴露为由 profile 持久化的实时 Config 表单；提供方选择独立存放于 `web` 条目。每个可编辑字段都是 volatile，因此下一次搜索无需替换插件实例即可读取已保存的值，而正在运行的搜索保持其启动时的快照。插件页表单顶部是一个开关，为 `web_search` 选中 Web IQ；关闭后清除用户覆盖，使组合中的提供方重新生效。其下，一个 API 配置组持有接口地址与 API Key，一个搜索参数组持有语言、地区、段落长度与安全搜索，底部单一命令同时向两个归属方提交：密钥走凭据 RPC，其余使用带 revision 防护的 profile mutation。凭据引用仍是在 `cordis.yml` 中做出的部署选择，因此没有任何配置界面向用户索要环境变量名。每个归属方在写入后都会回读，因此被拒绝的操作会被如实报告，而不是呈现为已接受。
+Host 把插件条目 `web-search-microsoft-webiq` 暴露为由 profile 持久化的实时 Config 表单；提供方选择独立存放于 `web` 条目，已安装的 bundle 层会选中 Web IQ，直到优先级更高的 profile 用户设置作出其他选择。每个可编辑字段都是 volatile，因此下一次搜索无需替换插件实例即可读取已保存的值，而正在运行的搜索保持其启动时的快照。插件页表单顶部的开关反映这一选择；关闭后在 profile 用户层写入 `deepseek-official`。其下，一个 API 配置组持有接口地址与 API Key，一个搜索参数组持有语言、地区、段落长度与安全搜索，底部单一命令同时向两个归属方提交：密钥走凭据 RPC，其余使用带 revision 防护的 profile mutation。凭据引用仍是在 `cordis.yml` 中做出的部署选择，因此没有任何配置界面向用户索要环境变量名。每个归属方在写入后都会回读，因此被拒绝的操作会被如实报告，而不是呈现为已接受。
 
 ## REST 契约与映射
 

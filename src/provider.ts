@@ -192,8 +192,10 @@ export class MicrosoftWebIqSearchProvider implements WebSearchProvider {
     if (resolved !== undefined && resolved.length > 0) return resolved
     const ref = options.apiKeyEnv ?? MICROSOFT_WEBIQ_DEFAULT_API_KEY_ENV
     throw new WebError(
-      `Microsoft Web IQ has no API key for "${ref}"; store it through the credentials service,`
-      + ' export it in the launching environment, or set a literal "apiKey" in the plugin config',
+      `Microsoft Web IQ has no API key for "${ref}". Open Plugins in the main sidebar,`
+      + ' select "Microsoft Web IQ Search", and configure API Key.'
+      + ' Deployments may instead export the reference in the launching environment'
+      + ' or set a literal "apiKey" in the plugin config.',
       'WEB_PROVIDER_CREDENTIAL_MISSING',
     )
   }

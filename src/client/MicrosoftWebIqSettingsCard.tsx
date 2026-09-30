@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
+import { Switch } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   MicrosoftWebIqClientSettings,
   MicrosoftWebIqSettingsPatch,
@@ -89,23 +90,12 @@ export function MicrosoftWebIqSettingsCard(props: MicrosoftWebIqSettingsCardProp
                   {state.settingDefault ? t('settingDefault') : t('useAsDefaultHint')}
                 </p>
               </div>
-              <button
-                type="button"
-                className={css.toggle}
-                role="switch"
-                aria-checked={state.isDefault}
-                aria-label={t('useAsDefault')}
+              <Switch
+                checked={state.isDefault}
+                label={t('useAsDefault')}
                 disabled={!state.defaultWritable || state.settingDefault}
-                onClick={() => { void props.setDefault(!state.isDefault) }}
-              >
-                <span
-                  className={css.toggleTrack}
-                  data-on={state.isDefault || undefined}
-                  aria-hidden="true"
-                >
-                  <span className={css.toggleThumb} />
-                </span>
-              </button>
+                onChange={(next) => { void props.setDefault(next) }}
+              />
             </div>
             {state.failedAction === 'default'
               ? <p className={css.error} role="status">{t('defaultFailed')}</p>

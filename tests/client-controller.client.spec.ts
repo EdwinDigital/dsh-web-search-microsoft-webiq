@@ -180,22 +180,22 @@ describe('MicrosoftWebIqSettingsController settings', () => {
     controller.dispose()
   })
 
-  it('clears the user override when the provider is switched off', async () => {
+  it('restores the shipped search provider when Web IQ is switched off', async () => {
     const provider = stubConfigForm<MicrosoftWebIqClientSettings>()
     const web = stubConfigForm<WebRuntimeClientSettings>()
     const controller = new MicrosoftWebIqSettingsController(provider.scope, web.scope, credentialsApi().remote)
     publishProvider(provider)
     publishWeb(web, 'microsoft-webiq')
-    web.unset.mockImplementation((field: string) => {
+    web.set.mockImplementation((field: string, value: unknown) => {
       web.publish({
-        value: { searchProvider: 'deepseek-official' },
-        user: { [field]: undefined },
+        value: { searchProvider: String(value) },
+        user: { [field]: value },
       })
     })
 
     await expect(controller.setDefault(false)).resolves.toBe(true)
 
-    expect(web.unset).toHaveBeenCalledWith('searchProvider')
+    expect(web.set).toHaveBeenCalledWith('searchProvider', 'deepseek-official')
     expect(controller.store.getSnapshot()).toMatchObject({ isDefault: false, settingDefault: false })
     controller.dispose()
   })

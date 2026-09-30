@@ -81,6 +81,7 @@ interface CredentialState {
 
 const DEFAULT_API_KEY_REF = 'MICROSOFT_WEBIQ_API_KEY'
 const PROVIDER_ID = 'microsoft-webiq'
+const SHIPPED_PROVIDER_ID = 'deepseek-official'
 
 /** Coordinate the provider namespace, shared selection namespace, and credential domain. */
 export class MicrosoftWebIqSettingsController {
@@ -160,8 +161,7 @@ export class MicrosoftWebIqSettingsController {
   }
 
   /**
-   * Select or release Microsoft Web IQ in the shared web settings namespace.
-   * Releasing clears the user override so the composed default applies again.
+   * Select Microsoft Web IQ or restore the Web profile's shipped search provider.
    * @param enabled - whether Web IQ should own `web.searchProvider`.
    * @returns whether the scope confirms the requested state after settlement.
    */
@@ -175,8 +175,10 @@ export class MicrosoftWebIqSettingsController {
     this.failedAction = undefined
     this.publish()
     try {
-      if (enabled) await this.webScope.set('searchProvider', PROVIDER_ID)
-      else await this.webScope.unset('searchProvider')
+      await this.webScope.set(
+        'searchProvider',
+        enabled ? PROVIDER_ID : SHIPPED_PROVIDER_ID,
+      )
     } catch (_settingsWriteFailure) {
       // Scope state after settlement remains authoritative.
     }

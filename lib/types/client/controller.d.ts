@@ -94,8 +94,7 @@ export declare class MicrosoftWebIqSettingsController {
      */
     saveApiKey(value: string): Promise<boolean>;
     /**
-     * Select or release Microsoft Web IQ in the shared web settings namespace.
-     * Releasing clears the user override so the composed default applies again.
+     * Select Microsoft Web IQ or restore the Web profile's shipped search provider.
      * @param enabled - whether Web IQ should own `web.searchProvider`.
      * @returns whether the scope confirms the requested state after settlement.
      */

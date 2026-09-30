@@ -135,57 +135,6 @@
   color: var(--dsw-alias-label-secondary);
 }
 
-.toggle {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  padding: 6px;
-  border: 0;
-  border-radius: 7px;
-  background: none;
-  cursor: pointer;
-}
-
-.toggle:disabled {
-  opacity: .45;
-  cursor: default;
-}
-
-.toggle:focus-visible {
-  outline: 2px solid var(--dsw-alias-brand-primary);
-  outline-offset: 1px;
-}
-
-.toggleTrack {
-  position: relative;
-  display: inline-block;
-  flex: none;
-  width: 28px;
-  height: 16px;
-  border-radius: 8px;
-  background: var(--dsw-alias-border-l2);
-  transition: background-color 120ms var(--ds-ease-in-out);
-}
-
-.toggleThumb {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--dsw-alias-bg-layer-1);
-  transition: transform 120ms var(--ds-ease-in-out);
-}
-
-.toggleTrack[data-on='true'] {
-  background: var(--dsw-alias-state-business-primary);
-}
-
-.toggleTrack[data-on='true'] .toggleThumb {
-  transform: translateX(12px);
-}
-
 .formFooter {
   display: flex;
   align-items: center;
