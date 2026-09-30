@@ -26,6 +26,14 @@ describe('published plugin contract', () => {
     expect(manifest.files).toContain('locale/*.json')
   })
 
+  it('declares the supported Harness prerelease branch explicitly', () => {
+    const dshPeers = Object.entries(manifest.peerDependencies)
+      .filter(([name]) => name.startsWith('@deepseek-ai/dsh-'))
+    expect(dshPeers.length).toBeGreaterThan(0)
+    expect(new Set(dshPeers.map(([, range]) => range)))
+      .toEqual(new Set(['>=0.2.0-rc.2 <0.3.0-0']))
+  })
+
   it('publishes a self-contained manifest icon for plugin-manager surfaces', () => {
     expect(manifest.icon).toBe('./icon.svg')
     expect(manifest.files).toContain('icon.svg')

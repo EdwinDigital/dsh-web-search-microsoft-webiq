@@ -55,17 +55,24 @@ flowchart LR
 
 ## 安装与选用
 
-本插件已收录于 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin)，因此读取该列表的插件市场都会提供它。在 `dsh-market` 中打开**设置 → 插件市场**，搜索 `webiq`，从条目安装即可——它归在**浏览器与网页**分类下：
+从 Harness 应用中安装：
 
-![dsh-market 插件市场中的本插件条目](docs/images/screenshot-4-market.png)
+1. 从主界面左侧栏打开**插件**。
+2. 选择**添加插件**。
+3. 粘贴 `https://github.com/EdwinDigital/dsh-web-search-microsoft-webiq`。
+4. 按需选择安装源或镜像，然后选择**安装**。
 
-本包未发布到 npm，条目也没有附带预构建 tarball，因此市场执行的是源码安装——与下面这条命令等价：
+![从 GitHub 仓库安装 Microsoft Web IQ 搜索](docs/images/screenshot-4-install.png)
+
+该对话框接受包名、GitHub 仓库地址与本地目录路径。本包未发布到 npm，因此使用仓库地址会直接从源码安装。本插件也已收录于 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) 的**浏览器与网页**分类，供读取该目录的插件市场使用。
+
+等价的命令行安装方式为：
 
 ```sh
 dsh plugin --profile web add github:EdwinDigital/dsh-web-search-microsoft-webiq
 ```
 
-无论走哪条路径，本包都是可安装的 profile bundle；在其中之一执行之前，出厂组合不会挂载任何 Web IQ 行。
+两条路径都会把本包安装为 profile bundle；在其中之一执行之前，出厂组合不会挂载任何 Web IQ 行。运行中的应用可能需要重新加载或重启，新的 Host 半与浏览器半才会生效。通过 GitHub 源码安装的插件不会自动更新；升级到新版本时请重新安装插件。
 
 构建产物已提交，因此 git 安装不执行构建步骤。这是刻意为之：准备 git 托管的包会在临时目录中运行 `npm install`，而 npm 会自动安装 peer 依赖——这将拉取第二份由 registry 解析的 harness 副本，其内部版本约束与本插件意图扩展的那套安装相冲突。提交产物使 harness 各包纯粹作为 peer，由运行中的安装解析。
 
@@ -81,6 +88,12 @@ dsh plugin --profile web add github:EdwinDigital/dsh-web-search-microsoft-webiq
 ```
 
 第二条补丁让 Web IQ 成为首次安装后的搜索提供方。由于已安装的 bundle 层会持续生效，关闭卡片开关会在优先级更高的 profile 用户层写入 `deepseek-official`。凭据引用由 schema 默认值解析；部署方只在需要改变查找目标时才在插件行写出 `apiKeyEnv`。
+
+### Harness 兼容性
+
+当前版本支持 DeepSeek Harness `>=0.2.0-rc.2 <0.3.0-0`。该范围刻意写出 `0.2.0` 的预发布元组：如果范围中没有比较符在完全相同的元组上携带预发布标签，node-semver 不会让普通宽范围接纳预发布构建。因此它包含 `0.2.0-rc.2` 及之后的 `0.2.0` 预发布版，也包含稳定的 `0.2.x`，但不声明兼容 `0.1.x`、其他 patch 元组上的预发布版或 `0.3.x`。
+
+所有 Harness 包都使用同一条显式 peer 范围。稳定的支撑 peer 保持为 `@deepseek-ai/cordis ^4.0.4`、`@deepseek-ai/schemastery ^3.18.4` 与 `react ^18.2.0`。兼容性以当前上游检出为验证基准；Harness 出现新的预发布元组时，需要显式审查并更新范围，而不是静默接纳。
 
 ### peer 依赖保持未解析是设计使然
 

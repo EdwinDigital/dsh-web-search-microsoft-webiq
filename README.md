@@ -55,17 +55,24 @@ The session trace for one of those calls. The call takes 595 ms measured from se
 
 ## Installation and selection
 
-The plugin is listed in [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin), so any storefront reading that list offers it. In `dsh-market`, open **Settings → Plugin Market**, search `webiq`, and install from the entry — it is filed under **Browser & web**:
+Install from the Harness application:
 
-![The plugin listed in the dsh-market plugin marketplace](docs/images/screenshot-4-market.png)
+1. Open **Plugins** from the main sidebar.
+2. Select **Add plugin**.
+3. Paste `https://github.com/EdwinDigital/dsh-web-search-microsoft-webiq`.
+4. Choose an installation source or mirror if needed, then select **Install**.
 
-The package is not on npm and its listing carries no prebuilt tarball, so the storefront installs from source — the same thing this command does:
+![Installing Microsoft Web IQ Search from its GitHub repository](docs/images/screenshot-4-install.png)
+
+The dialog accepts package names, GitHub repository URLs, and local directory paths. This package is not on npm, so the repository URL installs it directly from source. It is also listed in [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) under **Browser & web** for storefronts that consume that catalog.
+
+The equivalent command-line installation is:
 
 ```sh
 dsh plugin --profile web add github:EdwinDigital/dsh-web-search-microsoft-webiq
 ```
 
-Either route makes this an installed profile bundle, and the shipped composition mounts no Web IQ row until one of them runs.
+Both routes make this an installed profile bundle, and the shipped composition mounts no Web IQ row until one of them runs. A running application may need to reload or restart before the new Host and browser halves are active. GitHub-source installations do not update automatically; reinstall the plugin when upgrading to a newer release.
 
 The build output is committed, so a git install runs no build step. That is deliberate: preparing a git-hosted package runs `npm install` in a scratch tree, and npm auto-installs peer dependencies — which would pull a second, registry-resolved copy of the harness whose internal version constraints conflict with the installation this plugin is meant to extend. Shipping the artifact keeps the harness packages purely as peers resolved from the running installation.
 
@@ -81,6 +88,12 @@ Either route records the dependency, appends the package to the profile's `dsh.p
 ```
 
 The second patch row makes Web IQ the first-install search provider. Because the installed bundle layer remains active, turning the card switch off writes `deepseek-official` into the higher-priority profile user layer. The credential reference resolves from the schema default; a deployment states `apiKeyEnv` in the plugin row only to redirect the lookup.
+
+### Harness compatibility
+
+This version supports DeepSeek Harness `>=0.2.0-rc.2 <0.3.0-0`. The range deliberately names the `0.2.0` prerelease tuple: node-semver does not admit prerelease builds through an ordinary broad range unless a comparator carries a prerelease tag on that exact tuple. It therefore includes `0.2.0-rc.2` and later `0.2.0` prereleases, plus stable `0.2.x` releases, while making no claim for `0.1.x`, prereleases on a different patch tuple, or `0.3.x`.
+
+Every Harness package uses this same explicit peer range. Stable support peers remain `@deepseek-ai/cordis ^4.0.4`, `@deepseek-ai/schemastery ^3.18.4`, and `react ^18.2.0`. Compatibility is validated against the current upstream checkout; a new Harness prerelease tuple requires an explicit review and range update rather than being accepted silently.
 
 ### Peer dependencies stay unresolved by design
 

@@ -82,6 +82,8 @@ Naming follows the role that exists: a `Provider` supplies one implementation an
 
 The published payload stays closed — every relative runtime import and emitted asset must be covered by `files` — and `src`, declaration maps, and JS maps are not published.
 
+Official Harness packages remain peer dependencies with an explicit prerelease branch. The supported line is `>=0.2.0-rc.2 <0.3.0-0`; a wildcard or a broad range without a comparator on the `0.2.0` prerelease tuple silently excludes the very Harness prereleases this package is developed against. A future prerelease on another `major.minor.patch` tuple requires a reviewed range update.
+
 An installable plugin may ship `locale/en.json` plus matching language files and export `./locale/*.json`. The Plugin Manager and Settings can then show localized `meta.title` and `meta.description` without activating the plugin; `package.json` remains the fallback.
 
 Plugin artwork is package metadata, not browser code. A top-level manifest `"icon": "./icon.svg"` points to a self-contained SVG, PNG, JPEG, or WebP file inside the manifest directory, at most 256 KiB; the file belongs in `files` but needs no export. The Host reads it into a data URL without activating the plugin, and Plugin Manager bundle cards, details, component rows, configuration details, and Settings inventory all consume it. URLs, absolute paths, files outside the package, and symlinks escaping the package are rejected.

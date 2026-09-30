@@ -36,6 +36,8 @@ There is **no test script and no installed runner**. The specs under `tests/` ar
 
 Type checking has the same prerequisite. Every harness dependency is an **optional peer** that this repository deliberately leaves unresolved, and there is no published release to install them from, so point the peers at a harness checkout by linking its workspace packages into `node_modules` before running either command.
 
+Harness peers declare the reviewed compatibility line `>=0.2.0-rc.2 <0.3.0-0`. Keep the explicit `0.2.0` prerelease comparator: replacing it with `*` or a broad range silently excludes prerelease builds under node-semver. A new prerelease tuple requires a compatibility audit before widening the range.
+
 ## The committed artifact
 
 `lib/` is tracked so a git install needs no build step, which keeps the harness peer dependencies out of the installer's own resolution. `.gitignore` keeps only what the manifest publishes and drops tsc's incidental emit under `lib/types`.
