@@ -20,6 +20,9 @@ const NS = 'web-search.microsoft-webiq'
 /** Host settings namespace this card edits, which is also its slot key. */
 const SETTINGS_NS = 'web-search-microsoft-webiq'
 
+/** Installed bundle whose Plugins detail page owns this configuration. */
+const PACKAGE_NAME = '@edwindigital/dsh-web-search-microsoft-webiq'
+
 /** Browser services used by this package. */
 export const inject = ['slots', 'locale', 'remote', 'remote.credentials', 'configForms']
 
@@ -28,7 +31,6 @@ export const inject = ['slots', 'locale', 'remote', 'remote.credentials', 'confi
  * @param ctx - browser plugin context carrying the injected client services.
  */
 export function apply(ctx: ClientContext): void {
-  const t = ctx.locale.bind(NS)
   const providerScope = ctx.configForms.get<MicrosoftWebIqClientSettings>(SETTINGS_NS)
   const webScope = ctx.configForms.get<WebRuntimeClientSettings>('web')
   const controller = new MicrosoftWebIqSettingsController(providerScope, webScope, ctx.remote)
@@ -44,11 +46,9 @@ export function apply(ctx: ClientContext): void {
   )
 
   ctx.effect(() => ctx.configForms.whileServed([SETTINGS_NS], () =>
-    ctx.slots.inject('plugins.item', () => ctx.slots.register({
-      name: 'plugins.item',
-      id: SETTINGS_NS,
-      order: 50,
-      label: () => t('title'),
+    ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
+      name: 'plugins.bundle.config',
+      key: PACKAGE_NAME,
       locale: NS,
       inject: () => ({
         hooks: { microsoftWebIqSettings: controller.store },

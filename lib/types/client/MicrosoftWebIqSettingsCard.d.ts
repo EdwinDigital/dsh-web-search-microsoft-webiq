@@ -15,8 +15,8 @@ export interface MicrosoftWebIqSettingsCardFace {
     /** Store non-secret provider settings. */
     readonly saveSettings: (patch: MicrosoftWebIqSettingsPatch) => Promise<boolean>;
 }
-/** Props bound by the `plugins.item` renderer. */
-export type MicrosoftWebIqSettingsCardProps = PropsRuntime<'plugins.item'> & PropsLocale<'web-search.microsoft-webiq'> & InjectFace<MicrosoftWebIqSettingsCardFace>;
+/** Props bound by the installed bundle's Plugins-page configuration renderer. */
+export type MicrosoftWebIqSettingsCardProps = PropsRuntime<'plugins.bundle.config'> & PropsLocale<'web-search.microsoft-webiq'> & InjectFace<MicrosoftWebIqSettingsCardFace>;
 /**
  * Render the provider's package-local settings card.
  * @param props - slot-composed translations, card state, and controller commands.

@@ -32,7 +32,7 @@ const READY: MicrosoftWebIqSettingsState = {
   savingSettings: false,
 }
 
-function mount(state: Partial<MicrosoftWebIqSettingsState> = {}, cardView: 'summary' | 'form' = 'form') {
+function mount(state: Partial<MicrosoftWebIqSettingsState> = {}, cardView: 'summary' | 'page' = 'page') {
   const store = createSnapshotStore<MicrosoftWebIqSettingsState>({ ...READY, ...state })
   const saveApiKey = vi.fn(() => Promise.resolve(true))
   const setDefault = vi.fn(() => Promise.resolve(true))

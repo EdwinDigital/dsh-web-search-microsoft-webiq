@@ -45,7 +45,7 @@ jobs:
 
       - name: Committed artifact is present
         run: |
-          for f in lib/index.js lib/invariant.js lib/client.js; do
+          for f in lib/index.js lib/client.js; do
             if [ ! -s "$f" ]; then
               echo "missing or empty: $f — rebuild and commit lib/" >&2
               exit 1

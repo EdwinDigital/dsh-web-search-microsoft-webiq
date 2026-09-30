@@ -1,6 +1,6 @@
 # AGENTS.md
 
-An out-of-tree DeepSeek Harness plugin: the Microsoft Web IQ provider for the `ctx.web` search seam, plus the browser Plugins-page item that configures it.
+An out-of-tree DeepSeek Harness plugin: the Microsoft Web IQ provider for the `ctx.web` search seam, plus the browser bundle-configuration page that configures it.
 
 ## Relationship to the harness conventions
 
@@ -15,7 +15,7 @@ The harness gates (`verify-export-jsdoc`, `verify-package-invariants`, `verify-p
 ```
 src/            plugin source; the Host half (index/provider) and the browser half (client/)
   types.ts      types only — no runtime code
-  client/       browser Plugins-page item, its controller, locales, and CSS Modules
+  client/       browser bundle-config page, its controller, locales, and CSS Modules
 locale/         package display metadata discovered without activating the plugin
 lib/            committed build artifact — see "The committed artifact"
 tests/          vitest specs at package level, never src/__tests__/
@@ -50,7 +50,7 @@ The browser half is bundled to the harness client-loader contract — a CJS clos
 - **Heritage-declared members carry no JSDoc here.** `available()` and `search()` document at the declaring `WebSearchProvider` interface, and duplicating those docs is the error, not the omission.
 - **No hardcoded tunables.** Deployment-varying choices are validated `Config` fields changeable from `cordis.yml`; a `DEFAULT_*` constant is not configurability. Protocol constants and the Web IQ request contract stay fixed.
 - **Live fields are `Volatile<T>`.** Read every field once at search start with `.get()`; a settings write affects the next search without replacing the plugin instance, while an in-flight search keeps its captured values.
-- **Browser configuration uses the shared form service.** Bind `web-search-microsoft-webiq` and `web` through `ctx.configForms`, register under `plugins.item` only while the provider entry is served, and use the credentials Remote namespace for write-only key changes.
+- **Browser configuration uses the shared form service.** Bind `web-search-microsoft-webiq` and `web` through `ctx.configForms`, register under `plugins.bundle.config` with this package's npm name only while the provider entry is served, and use the credentials Remote namespace for write-only key changes. `plugins.item` is reserved for companion pages shipped with the Harness.
 - **Misconfiguration fails loud.** `validateConfig` throws at load and operation entry for what is self-contained; a credential that cannot be resolved fails the operation with `WEB_PROVIDER_CREDENTIAL_MISSING` naming only the reference.
 - **The credential-bearing request refuses redirects.** `redirect: 'error'` is a security invariant of sending the key to the configured endpoint, not a preference.
 - **Secrets never widen.** The key literal is `role('secret')`, and it stays out of Settings descriptions, browser boot data, logs, and error messages.

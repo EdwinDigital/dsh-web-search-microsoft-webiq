@@ -64,7 +64,7 @@ The CJS-closure loader format that `tsdown.config.ts` reproduces has **no bindin
 
 For anything touching slots, props, or stores, `packages/client/AGENTS.md` is authoritative — notably that a UI plugin composes only through `ctx.slots.register`, that components never see `ctx`, stores come from `@deepseek-ai/dsh-client-store`, and the `/client` entrypoint exports only loader needs plus public types.
 
-The Plugins page owns the `plugins.item` slot. A card renders `props.view === 'summary'` as one line and `props.view === 'form'` as its controls; the old `settings.plugin.item` slot and `settingsScope` service are no longer current.
+The Plugins page renders a community bundle's own form through `plugins.bundle.config`, keyed by its full npm package name. `plugins.item` is reserved for official companion settings packages shipped with the Harness, while `plugins.row.config` gives one bundle row its own Configure action. Configuration entries render `props.view === 'page'` as their controls; `summary` is used only for official cards or a row whose package description is absent. The old `settings.plugin.item` slot and `settingsScope` service are no longer current.
 
 The shared module baseline is now `PLATFORM_MODULES`: React, Cordis, `dsh-client-store`, `ui-slots`, `ui-primitives`, and `ui-dockkit`. The standalone build must externalize exactly the baseline identities it imports and inline other browser implementation code.
 
@@ -102,7 +102,7 @@ No deviation is outstanding. Two shapes look wrong when read against a single pa
 - **`available()` reports usable whenever a resolver is installed.** This matches `web-search-deepseek` line for line; see the provider-contract section above for why the async credential seam leaves no better option.
 - **`Config.apiKey` accepts a literal secret for direct composition.** `web-search-deepseek` carries the same field with the same purpose. It is `role('secret')`, so wire surfaces strip it; a value set through it is still persisted in the settings document, which is why the README records it rather than the code forbidding it.
 
-Historical gaps were fixed rather than recorded: an omitted `maxResults` is forwarded as omitted instead of defaulting to 10; `lib/client.js.map` is not published; the obsolete settings-section bridge and browser runtime package were replaced by Volatile Config, `configForms`, `plugins.item`, and `dsh-client-store`; and the empty invariant companion was removed.
+Historical gaps were fixed rather than recorded: an omitted `maxResults` is forwarded as omitted instead of defaulting to 10; `lib/client.js.map` is not published; the obsolete settings-section bridge and browser runtime package were replaced by Volatile Config, `configForms`, `plugins.bundle.config`, and `dsh-client-store`; and the empty invariant companion was removed.
 
 ## Maintaining this file
 
