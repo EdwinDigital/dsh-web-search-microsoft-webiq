@@ -32,6 +32,8 @@ describe('published plugin contract', () => {
     expect(Buffer.byteLength(icon)).toBeLessThanOrEqual(256 * 1024)
     expect(icon).toMatch(/^<svg\b/u)
     expect(icon).not.toMatch(/\b(?:href|src)=/u)
+    expect(icon).toContain('width="36" height="36" viewBox="0 0 36 36"')
+    expect(icon).toContain('transform="translate(6 6)"')
   })
 
   it('selects Web IQ for web search on first installation', () => {
