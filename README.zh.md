@@ -231,8 +231,8 @@ content-type: application/json
 ## 已知限制与暂缓事项
 
 - **搜索侧只接入了 `/v3/search/web`**：Web IQ 另有 news（可信来源、仅近 14 天）、videos、images 与 classic 多答案端点，但 `WebSearchRequest` 只承载查询与结果上限，调用方无从指定方法，每次搜索都以 `contentFormat: passage` 发往 web 端点。提供方专属模式需等待与提供方无关的 Service Definition 字段；[接入 Web IQ 的其他方法](#接入-web-iq-的其他方法)是当下能够触及它们的路径，且位于本 seam 之外。
-- **未为 `/v3/browse` 注册 fetch 提供方**：seam 已在 `web_fetch` 工具背后备有 `registerFetchProvider` 角色且无需新增字段，因此 `web_fetch` 调用会落到组合中的其他提供方，而非 Web IQ 自身的抽取能力及其 `liveCrawl=fallback` 重试路径。
-- **请求超过 50 条结果会被静默截断**：Web IQ 自身上限为 50，而 `truncated` 表示的是 seam 侧的丢弃而非提供方限制，因此请求更多的调用方最多得到 50 条，且没有任何标记说明这一差异。
+- **`maxResults` 归 `dsh-tool-web` 所有，而非本提供方的设置卡片**：Harness 消费方目前把 `searchMaxResults` 默认为 8，并通过 `WebSearchRequest` 传入这一上限；本包将其转发给 Web IQ，并把显式值封顶于 API 最大值 50。因此结果数应在 `tool-web` 条目中调整。当前 Web IQ 卡片不暴露这项共享设置，直接配置超过 50 时也不会产生截断标记。
+- **未为 `/v3/browse` 注册 fetch 提供方**：无需修改 `web_fetch` 工具即可在既有 `registerFetchProvider` 角色后实现 Browse，它支持抽取后的文本、HTML 或 Markdown，也可选择实时抓取。但它不能原样替换出厂 HTTP fetcher：Browse 返回抽取后的页面内容而非资源响应体，不提供源站 HTTP 状态，实时抓取期间可能返回 API `202`，也没有权威的截断标记。因此未来接入应作为显式可选的 fetch 提供方并记录映射规则，而不是静默替换。
 - **`safeSearch: off` 不转移调用方的内容责任**：Web IQ 仍会拦截违法内容，但可能敏感的合法内容会原样进入模型；本包不做进一步过滤。
 - **`site:` 与 `-site:` 操作符会削弱结果集**：相关性下降，且无论配置何种安全搜索模式，`site:` 都可能返回成人内容。
 - **自定义 `endpoint` 会收到解析出的密钥**：凭据发往何处由部署方而非本包决定；本地仅强制 HTTPS 这一项要求。
