@@ -41,7 +41,7 @@ flowchart LR
 
 ## Screenshots
 
-The card on the Plugins settings page. **Use Web IQ for web search** is the switch that selects this provider; turned off, `web_search` goes back to the composed default. Below it, one group holds the endpoint and the API key and another holds language, region, passage length, and SafeSearch. The password field is blank after load — the line under it reports only that a key is stored, which is all the card can say about a value it never reads back.
+The bundle detail page under the main sidebar's **Plugins** entry. **Use Web IQ for web search** is the switch that selects this provider; turned off, `web_search` goes back to the composed default. Below it, one group holds the endpoint and API key and another holds language, region, passage length, and SafeSearch. The line under the masked password field reports only that a key is stored, without exposing the credential.
 
 ![The Microsoft Web IQ settings card](docs/images/screenshot-1-settings.png)
 

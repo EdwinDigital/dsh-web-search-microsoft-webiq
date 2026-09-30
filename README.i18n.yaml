@@ -4,5 +4,5 @@
 #   git hash-object README.md README.zh.md
 # The harness gate (`pnpm run verify-translation-pairing`) is a workspace script and
 # does not reach this out-of-tree package, so the record is maintained by hand.
-README.md: dc77bd98145554f75eb1ead636fdb6ae404f7cc8
-README.zh.md: 1124aed8a3b342bf28361d157cc0b4754015322b
+README.md: 40cb66a821019ed12306964ca1ebe66cc7c3ba3b
+README.zh.md: 19c5c0540a06c80e1996e104d19c7a0ad1943261
